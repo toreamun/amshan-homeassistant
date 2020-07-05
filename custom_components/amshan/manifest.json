@@ -4,7 +4,8 @@
   "config_flow": true,
   "documentation": "https://github.com/toreamun/amshan-homeassistant",
   "requirements": [
-    "pyserial-asyncio==0.4"
+    "pyserial-asyncio==0.4",
+    "amshan==0.4"
   ],
   "codeowners": [
     "@toreamun"
