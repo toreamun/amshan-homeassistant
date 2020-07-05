@@ -1,0 +1,209 @@
+"""The AMS HAN meter integration."""
+from asyncio import AbstractEventLoop, BaseProtocol, Queue
+from datetime import datetime
+import logging
+import typing
+from typing import Any, Dict, Mapping, NamedTuple, Union
+
+import serial_asyncio
+from amshan import obis_map
+from amshan.meter_connection import (
+    AsyncConnectionFactory,
+    ConnectionManager,
+    MeterTransportProtocol,
+    SmartMeterFrameContentProtocol,
+)
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import callback
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
+
+from .const import (
+    CONF_SERIAL_BAUDRATE,
+    CONF_SERIAL_BYTESIZE,
+    CONF_SERIAL_DSRDTR,
+    CONF_SERIAL_PARITY,
+    CONF_SERIAL_PORT,
+    CONF_SERIAL_RTSCTS,
+    CONF_SERIAL_STOPBITS,
+    CONF_SERIAL_XONXOFF,
+    CONF_TCP_HOST,
+    CONF_TCP_PORT,
+    ENTRY_DATA_MEASURE_CONNECTION,
+    ENTRY_DATA_MEASURE_QUEUE,
+    DOMAIN,
+    HOSTNAME_IP4_IP6_REGEX,
+)
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+
+PLATFORM_TYPE = "sensor"
+
+SERIAL_SCHEMA_DICT = {
+    vol.Required(CONF_SERIAL_PORT): cv.string,
+    vol.Optional(CONF_SERIAL_BAUDRATE, default=2400): cv.positive_int,
+    vol.Optional(CONF_SERIAL_PARITY, default="N"): vol.In(["N", "E", "O"]),
+    vol.Optional(CONF_SERIAL_BYTESIZE, default=8): vol.In([5, 6, 7, 8]),
+    vol.Optional(CONF_SERIAL_STOPBITS, default="1"): vol.In([1, 1.5, 2]),
+    vol.Optional(CONF_SERIAL_XONXOFF, default=False): cv.boolean,
+    vol.Optional(CONF_SERIAL_RTSCTS, default=False): cv.boolean,
+    vol.Optional(CONF_SERIAL_DSRDTR, default=False): cv.boolean,
+}
+
+TCP_SCHEMA_DICT = {
+    vol.Required(CONF_TCP_HOST): vol.Match(
+        HOSTNAME_IP4_IP6_REGEX, msg="Must be a valid hostname or ip address."
+    ),
+    vol.Required(CONF_TCP_PORT): vol.Range(0, 65353),
+}
+
+SERIAL_SCHEMA = vol.Schema(SERIAL_SCHEMA_DICT)
+TCP_SCHEMA = vol.Schema(TCP_SCHEMA_DICT)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            vol.Any(SERIAL_SCHEMA, TCP_SCHEMA, msg="Requires tcp or serial settings.")
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
+METER_DATA_INFO_KEYS = [
+    obis_map.NEK_HAN_FIELD_METER_MANUFACTURER,
+    obis_map.NEK_HAN_FIELD_METER_TYPE,
+    obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID,
+    obis_map.NEK_HAN_FIELD_METER_ID,
+]
+
+
+async def async_setup(hass: HomeAssistantType, config: ConfigType) -> bool:
+    """Set up the amshan component."""
+    hass.data[DOMAIN] = {}
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
+    """Set up amshan from a config entry."""
+    measure_queue: "Queue[bytearray]" = Queue(loop=hass.loop)
+    connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
+
+    hass.data[DOMAIN][entry.entry_id] = {
+        ENTRY_DATA_MEASURE_CONNECTION: connection,
+        ENTRY_DATA_MEASURE_QUEUE: measure_queue,
+    }
+
+    @callback
+    async def on_hass_stop_close_connection(_: EventType) -> None:
+        await async_close(measure_queue, connection)
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop_close_connection)
+
+    # Don't use hass.async_create_task, but schedule directly on the loop, to avoid blocking startup.
+    hass.loop.create_task(connection.connect_loop())
+
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, PLATFORM_TYPE)
+    )
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
+        entry, PLATFORM_TYPE
+    )
+
+    if is_plaform_unload_success:
+        resources = hass.data[DOMAIN].pop(entry.entry_id)
+        await async_close(
+            resources[ENTRY_DATA_MEASURE_QUEUE],
+            resources[ENTRY_DATA_MEASURE_CONNECTION],
+        )
+
+    return is_plaform_unload_success
+
+
+async def async_close(
+    measure_queue: "Queue[bytearray]", connection: ConnectionManager
+) -> None:
+    """Close meter connection and measure processor."""
+    connection.close()
+
+    # signal processor to exit processing loop by sending empty bytearray on the queue
+    await measure_queue.put(bytearray())
+
+
+def setup_meter_connection(
+    loop: AbstractEventLoop,
+    config: Mapping[str, Any],
+    measure_queue: "Queue[bytearray]",
+) -> ConnectionManager:
+    """Initialize ConnectionManager using configured connection type."""
+    connection_factory = get_connection_factory(loop, config, measure_queue)
+    return ConnectionManager(connection_factory)
+
+
+def get_connection_factory(
+    loop: AbstractEventLoop,
+    config: Mapping[str, Any],
+    measure_queue: "Queue[bytearray]",
+) -> AsyncConnectionFactory:
+    """Get connection factory based on configured connection type."""
+
+    async def tcp_connection_factory() -> MeterTransportProtocol:
+        connection = await loop.create_connection(
+            lambda: typing.cast(
+                BaseProtocol, SmartMeterFrameContentProtocol(measure_queue)
+            ),
+            host=config[CONF_TCP_HOST],
+            port=config[CONF_TCP_PORT],
+        )
+        return typing.cast(MeterTransportProtocol, connection)
+
+    async def serial_connection_factory() -> MeterTransportProtocol:
+        connection = await serial_asyncio.create_serial_connection(
+            loop,
+            lambda: SmartMeterFrameContentProtocol(measure_queue),
+            url=config[CONF_SERIAL_PORT],
+            parity=config[CONF_SERIAL_PARITY],
+            bytesize=config[CONF_SERIAL_BYTESIZE],
+            stopbits=float(config[CONF_SERIAL_STOPBITS]),
+            xonxoff=config[CONF_SERIAL_XONXOFF],
+            rtscts=config[CONF_SERIAL_RTSCTS],
+            dsrdtr=config[CONF_SERIAL_DSRDTR],
+        )
+        return typing.cast(MeterTransportProtocol, connection)
+
+    # select tcp or serial connection factory
+    connection_factory = (
+        tcp_connection_factory if CONF_TCP_HOST in config else serial_connection_factory
+    )
+
+    return connection_factory
+
+
+class MeterInfo(NamedTuple):
+    """Info about meter."""
+
+    manufacturer: str
+    type: str
+    list_version_id: str
+    meter_id: str
+
+    @property
+    def unique_id(self) -> str:
+        """Meter unique id."""
+        return f"{self.manufacturer}-{self.type}-{self.meter_id}".lower()
+
+    @classmethod
+    def from_measure_data(
+        cls, measure_data: Dict[str, Union[str, int, float, datetime]]
+    ) -> "MeterInfo":
+        """Create MeterInfo from measure_data dictionary."""
+        return cls(
+            *[typing.cast(str, measure_data[key]) for key in METER_DATA_INFO_KEYS]
+        )

@@ -1,0 +1,12 @@
+{
+  "domain": "amshan",
+  "name": "AMS HAN meter",
+  "config_flow": true,
+  "documentation": "https://github.com/toreamun/amshan-homeassistant",
+  "requirements": [
+    "pyserial-asyncio==0.4"
+  ],
+  "codeowners": [
+    "@toreamun"
+  ]
+}

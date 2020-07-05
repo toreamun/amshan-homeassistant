@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select connection type",
+        "data": {
+          "type": "Connection type"
+        }
+      },
+      "network_connection": {
+        "title": "Connect to network host",
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]",
+          "port": "TCP/IP port number"
+        }
+      },
+      "serial_connection": {
+        "title": "Connect to serial device",
+        "data": {
+          "port": "Serial device name",
+          "baudrate": "Baud rate such as 2400, 9600 or 115200 etc.",
+          "parity": "Parity checking",
+          "bytesize": "Number of data bits",
+          "stopbits": "Number of stop bits",
+          "xonxoff": "Enable software flow control",
+          "rtscts": "Enable hardware (RTS/CTS) flow control",
+          "dsrdtr": "Enable hardware (DSR/DTR) flow control"
+        }
+      }
+    },
+    "error": {
+      "voluptuous_host": "Must be a valid hostname or IP-address",
+      "voluptuous_port": "Must be a valid port number (between 0 and 65353)",
+      "timeout_connect": "Timeout connecting",
+      "timeout_read_frames": "Timeout connecting",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  }
+}
