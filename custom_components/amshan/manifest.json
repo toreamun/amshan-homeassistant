@@ -3,11 +3,12 @@
   "name": "AMS HAN meter",
   "config_flow": true,
   "documentation": "https://github.com/toreamun/amshan-homeassistant",
+  "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
+  "codeowners": [
+    "@toreamun"
+  ],
   "requirements": [
     "pyserial-asyncio==0.4",
     "amshan==0.4"
-  ],
-  "codeowners": [
-    "@toreamun"
   ]
 }
