@@ -5,7 +5,6 @@ import logging
 import typing
 from typing import Any, Dict, Mapping, NamedTuple, Union
 
-import serial_asyncio
 from amshan import obis_map
 from amshan.meter_connection import (
     AsyncConnectionFactory,
@@ -13,13 +12,13 @@ from amshan.meter_connection import (
     MeterTransportProtocol,
     SmartMeterFrameContentProtocol,
 )
-import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
+import serial_asyncio
+import voluptuous as vol
 
 from .const import (
     CONF_SERIAL_BAUDRATE,
@@ -32,9 +31,9 @@ from .const import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
+    DOMAIN,
     ENTRY_DATA_MEASURE_CONNECTION,
     ENTRY_DATA_MEASURE_QUEUE,
-    DOMAIN,
     HOSTNAME_IP4_IP6_REGEX,
 )
 
@@ -87,7 +86,7 @@ async def async_setup(hass: HomeAssistantType, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
-    measure_queue: "Queue[bytearray]" = Queue(loop=hass.loop)
+    measure_queue: "Queue[bytes]" = Queue(loop=hass.loop)
     connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
 
     hass.data[DOMAIN][entry.entry_id] = {
@@ -128,7 +127,7 @@ async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> boo
 
 
 async def async_close(
-    measure_queue: "Queue[bytearray]", connection: ConnectionManager
+    measure_queue: "Queue[bytes]", connection: ConnectionManager
 ) -> None:
     """Close meter connection and measure processor."""
     connection.close()
@@ -138,9 +137,7 @@ async def async_close(
 
 
 def setup_meter_connection(
-    loop: AbstractEventLoop,
-    config: Mapping[str, Any],
-    measure_queue: "Queue[bytearray]",
+    loop: AbstractEventLoop, config: Mapping[str, Any], measure_queue: "Queue[bytes]",
 ) -> ConnectionManager:
     """Initialize ConnectionManager using configured connection type."""
     connection_factory = get_connection_factory(loop, config, measure_queue)
@@ -148,9 +145,7 @@ def setup_meter_connection(
 
 
 def get_connection_factory(
-    loop: AbstractEventLoop,
-    config: Mapping[str, Any],
-    measure_queue: "Queue[bytearray]",
+    loop: AbstractEventLoop, config: Mapping[str, Any], measure_queue: "Queue[bytes]",
 ) -> AsyncConnectionFactory:
     """Get connection factory based on configured connection type."""
 

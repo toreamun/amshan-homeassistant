@@ -8,10 +8,11 @@ import typing
 from typing import Any, Dict, Optional
 
 from amshan import autodecoder, obis_map
+from homeassistant import config_entries, core, exceptions
+from homeassistant.helpers.typing import HomeAssistantType
 import voluptuous as vol
 
-from homeassistant import config_entries, core, exceptions
-from homeassistant.components.amshan import (
+from . import (
     CONF_SERIAL_BAUDRATE,
     CONF_SERIAL_BYTESIZE,
     CONF_SERIAL_DSRDTR,
@@ -27,8 +28,6 @@ from homeassistant.components.amshan import (
     MeterInfo,
     get_connection_factory,
 )
-from homeassistant.helpers.typing import HomeAssistantType
-
 from .const import DOMAIN  # pylint:disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
@@ -224,7 +223,7 @@ class ConfigFlowValidation:
         self, loop: AbstractEventLoop, user_input: Dict[str, Any]
     ) -> Optional[MeterInfo]:
         """Try to connect an get meter information to validate connection data."""
-        measure_queue: "Queue[bytearray]" = Queue()
+        measure_queue: "Queue[bytes]" = Queue()
         connection_factory = get_connection_factory(loop, user_input, measure_queue)
 
         transport = None

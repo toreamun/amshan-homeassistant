@@ -18,8 +18,6 @@ from typing import (
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
-
-from homeassistant.components.amshan import MeterInfo
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import DEVICE_CLASS_POWER, ENERGY_KILO_WATT_HOUR, POWER_WATT
 from homeassistant.core import callback
@@ -30,6 +28,7 @@ from homeassistant.helpers.dispatcher import (
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import HomeAssistantType
 
+from . import MeterInfo
 from .const import (
     DOMAIN,
     ENTRY_DATA_MEASURE_QUEUE,
