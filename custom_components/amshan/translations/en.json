@@ -1,20 +1,20 @@
 {
     "config": {
         "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+            "already_configured": "Device is already configured"
         },
         "error": {
-            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+            "cannot_connect": "Failed to connect, please try again",
             "timeout_connect": "Timeout connecting",
             "timeout_read_frames": "Timeout connecting",
-            "unknown": "[%key:common::config_flow::error::unknown%]",
+            "unknown": "Unexpected error",
             "voluptuous_host": "Must be a valid hostname or IP-address",
             "voluptuous_port": "Must be a valid port number (between 0 and 65353)"
         },
         "step": {
             "network_connection": {
                 "data": {
-                    "host": "[%key:common::config_flow::data::host%]",
+                    "host": "Host address (name or IP)",
                     "port": "TCP/IP port number"
                 },
                 "title": "Connect to network host"

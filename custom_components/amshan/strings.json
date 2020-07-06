@@ -10,7 +10,7 @@
       "network_connection": {
         "title": "Connect to network host",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
+          "host": "Host address (name or IP)",
           "port": "TCP/IP port number"
         }
       },
@@ -33,11 +33,11 @@
       "voluptuous_port": "Must be a valid port number (between 0 and 65353)",
       "timeout_connect": "Timeout connecting",
       "timeout_read_frames": "Timeout connecting",
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "cannot_connect": "Failed to connect, please try again",
+      "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "Device is already configured"
     }
   }
 }
