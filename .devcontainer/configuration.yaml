@@ -4,3 +4,6 @@ logger:
   default: error
   logs:
     custom_components.amshan: debug
+
+ptvsd:
+  wait: True
