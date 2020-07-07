@@ -202,9 +202,7 @@ class ConfigFlowValidation:
         """Initialize ConfigFlowValidation class."""
         self.errors: Dict[str, Any] = {}
 
-    async def _async_get_meter_info(
-        self, measure_queue: "Queue[bytearray]"
-    ) -> MeterInfo:
+    async def _async_get_meter_info(self, measure_queue: "Queue[bytes]") -> MeterInfo:
         """Decode meter data stream and return meter information if available."""
         decoder = autodecoder.AutoDecoder()
 

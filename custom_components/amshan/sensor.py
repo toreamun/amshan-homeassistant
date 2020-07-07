@@ -295,7 +295,7 @@ class MeterMeasureProcessor:
         self,
         hass: HomeAssistantType,
         async_add_entities: Callable[[List[Entity], bool], None],
-        measure_queue: "Queue[bytearray]",
+        measure_queue: "Queue[bytes]",
     ) -> None:
         """Initialize MeterMeasureProcessor class."""
         self._hass = hass
@@ -326,7 +326,7 @@ class MeterMeasureProcessor:
         while True:
             measure_frame_content = await self._measure_queue.get()
             if not measure_frame_content:
-                # stop signal (None) reveived
+                # stop signal (empty bytes) reveived
                 return dict()
 
             decoded_measure = self._decoder.decode_frame_content(measure_frame_content)

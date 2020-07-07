@@ -132,8 +132,8 @@ async def async_close(
     """Close meter connection and measure processor."""
     connection.close()
 
-    # signal processor to exit processing loop by sending empty bytearray on the queue
-    await measure_queue.put(bytearray())
+    # signal processor to exit processing loop by sending empty bytes on the queue
+    await measure_queue.put(bytes())
 
 
 def setup_meter_connection(
