@@ -229,8 +229,12 @@ class ConfigFlowValidation:
             try:
                 transport, _ = await connection_factory()
             except TimeoutError:
+                _LOGGER.debug("Timeout when connecting to HAN-port: %s", ex)
                 self.errors[VALIDATION_ERROR_BASE] = VALIDATION_ERROR_TIMEOUT_CONNECT
                 return None
+            except Exception as ex:
+                _LOGGER.exception("Unexpected error connecting to HAN-port: %s", ex)
+                raise
 
             try:
                 return await self._async_get_meter_info(measure_queue)
