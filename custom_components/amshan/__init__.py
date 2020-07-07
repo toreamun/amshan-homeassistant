@@ -164,6 +164,7 @@ def get_connection_factory(
             loop,
             lambda: SmartMeterFrameContentProtocol(measure_queue),
             url=config[CONF_SERIAL_PORT],
+            baudrate=config[CONF_SERIAL_BAUDRATE],
             parity=config[CONF_SERIAL_PARITY],
             bytesize=config[CONF_SERIAL_BYTESIZE],
             stopbits=float(config[CONF_SERIAL_STOPBITS]),
