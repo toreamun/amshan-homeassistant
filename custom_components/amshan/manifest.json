@@ -9,6 +9,6 @@
   ],
   "requirements": [
     "pyserial-asyncio==0.4",
-    "amshan==0.4"
+    "amshan==0.4.2"
   ]
 }
