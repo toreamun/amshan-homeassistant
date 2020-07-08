@@ -8,7 +8,7 @@
     "@toreamun"
   ],
   "requirements": [
-    "pyserial-asyncio==0.4",
+    "pyserial-asyncio==0.4.2",
     "amshan==0.4"
   ]
 }
