@@ -1,9 +1,9 @@
 default_config:
 
 logger:
-  default: error
+  default: debug
   logs:
     custom_components.amshan: debug
 
 ptvsd:
-  wait: True
+  #wait: True

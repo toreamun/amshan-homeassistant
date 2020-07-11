@@ -6,6 +6,7 @@ import logging
 import socket
 import typing
 from typing import Any, Dict, Optional
+from serial import SerialException
 
 from amshan import autodecoder, obis_map
 from homeassistant import config_entries, core, exceptions
@@ -62,11 +63,16 @@ MAX_FRAME_SEARCH_COUNT = 6
 # Kamstrup sends data frame every 10 sec. Aidon every 2.5 sec. Kaifa evry 2 sec.
 MAX_FRAME_WAIT_TIME = 12
 
+# Error codes
+# Use the key base if you want to show an error unrelated to a specific field.
+# The specified errors need to refer to a key in a translation file.
 VALIDATION_ERROR_BASE = "base"
 VALIDATION_ERROR_TIMEOUT_CONNECT = "timeout_connect"
 VALIDATION_ERROR_TIMEOUT_READ_FRAMES = "timeout_read_frames"
 VALIDATION_ERROR_HOST_CHECK = "host_check"
 VALIDATION_ERROR_VOLUPTUOUS_BASE = "voluptuous_"
+VALIDATION_ERROR_SERIAL_EXCEPTION_GENERAL = "serial_exception_general"
+VALIDATION_ERROR_SERIAL_EXCEPTION_ERRNO_2 = "serial_exception_errno_2"
 
 
 class ConnectionType(Enum):
@@ -152,55 +158,20 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-# class PlaceholderHub:
-#     """Placeholder class to make tests pass.
-
-#     TODO Remove this placeholder class and replace with things from your PyPI package.
-#     """
-
-#     def __init__(self, host) -> None:
-#         """Initialize."""
-#         self.host = host
-
-#     async def authenticate(self, username, password) -> bool:
-#         """Test if we can authenticate with the host."""
-#         return True
-
-
-# async def validate_input(hass: core.HomeAssistant, data):
-#     """
-#     Validate the user input allows us to connect.
-
-#     Data has the keys from DATA_SCHEMA with values provided by the user.
-#     """
-#     hub = PlaceholderHub(data["host"])
-
-#     if not await hub.authenticate(data["username"], data["password"]):
-#         raise InvalidAuth
-
-#     # If you cannot connect:
-#     # throw CannotConnect
-#     # If the authentication is wrong:
-#     # InvalidAuth
-
-#     # Return info that you want to store in the config entry.
-#     return {"title": "Name of the device"}
-
-
-# class CannotConnect(exceptions.HomeAssistantError):
-#     """Error to indicate we cannot connect."""
-
-
-# class InvalidAuth(exceptions.HomeAssistantError):
-#     """Error to indicate there is invalid auth."""
-
-
 class ConfigFlowValidation:
     """ConfigFlow input validation."""
 
     def __init__(self) -> None:
         """Initialize ConfigFlowValidation class."""
         self.errors: Dict[str, Any] = {}
+
+    def _set_base_error(self, error_key: str) -> None:
+        """
+        Show an error unrelated to a specific field.
+
+        :param error_key: error key that needs to refer to a key in a translation file.
+        """
+        self.errors[VALIDATION_ERROR_BASE] = error_key
 
     async def _async_get_meter_info(self, measure_queue: "Queue[bytes]") -> MeterInfo:
         """Decode meter data stream and return meter information if available."""
@@ -228,10 +199,24 @@ class ConfigFlowValidation:
         try:
             try:
                 transport, _ = await connection_factory()
-            except TimeoutError:
+            except TimeoutError as ex:
                 _LOGGER.debug("Timeout when connecting to HAN-port: %s", ex)
-                self.errors[VALIDATION_ERROR_BASE] = VALIDATION_ERROR_TIMEOUT_CONNECT
+                self._set_base_error(VALIDATION_ERROR_TIMEOUT_CONNECT)
                 return None
+            except SerialException as ex:
+                if ex.errno == 2:
+                    # No such file or directory
+                    self._set_base_error(VALIDATION_ERROR_SERIAL_EXCEPTION_ERRNO_2)
+                    _LOGGER.debug(
+                        "Serial exception when connecting to HAN-port: %s", ex
+                    )
+                else:
+                    self._set_base_error(VALIDATION_ERROR_SERIAL_EXCEPTION_GENERAL)
+                    _LOGGER.error(
+                        "Serial exception when connecting to HAN-port: %s", ex
+                    )
+                return None
+
             except Exception as ex:
                 _LOGGER.exception("Unexpected error connecting to HAN-port: %s", ex)
                 raise
@@ -239,9 +224,7 @@ class ConfigFlowValidation:
             try:
                 return await self._async_get_meter_info(measure_queue)
             except TimeoutError:
-                self.errors[
-                    VALIDATION_ERROR_BASE
-                ] = VALIDATION_ERROR_TIMEOUT_READ_FRAMES
+                self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_FRAMES)
                 return None
         finally:
             if transport:
@@ -260,7 +243,7 @@ class ConfigFlowValidation:
                 flags=0,
             )
         except OSError:
-            self.errors["host"] = VALIDATION_ERROR_HOST_CHECK
+            self.errors[CONF_SERIAL_PORT] = VALIDATION_ERROR_HOST_CHECK
 
     def _validate_schema(
         self, connection_type: ConnectionType, user_input: Dict[str, Any]

@@ -34,6 +34,8 @@
       "timeout_connect": "Timeout connecting",
       "timeout_read_frames": "Timeout connecting",
       "cannot_connect": "Failed to connect, please try again",
+      "serial_exception_general": "Could not open serial port. See log for details",
+      "serial_exception_errno_2": "Serial device not found",
       "unknown": "Unexpected error"
     },
     "abort": {
