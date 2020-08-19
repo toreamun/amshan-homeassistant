@@ -1,4 +1,17 @@
-# AMS HAN Home Assistant integration
-Integrate HAN-port attached Aidon, Kaifa and Kamstrum meters used in Norway into Home Assistant.
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![buy me a coffee](https://img.shields.io/badge/If%20you%20like%20it-Buy%20me%20a%20coffee-orange.svg?style=for-the-badge)](https://www.buymeacoffee.com/toreamun)
 
-This integration supports HAN-port connection as serial device or TCP-IP address/port.
+# AMS HAN Home Assistant integration
+Integrate HAN-port of Aidon, Kaifa and Kamstrum meters used in Norway with Home Assistant.
+
+This integration supports connecting to MBUS device using serial port or TCP-IP address/port.
+
+## Conecting MBUS device
+You need to have a MBUS slave device connected to to the HAN (Home Area Network) port of your meter. The HAN-port is a RJ45 socket where only pin 1 and 2 is used. Connect wires from pin 1 and 2 to the MBUS slave device. Then connect the MBUS device to your computer. Most devices uses USB to become a serial device when connected. You can then relay (i.e. using net2ser and socat) the signal to TCP/IP if your device is connected to a remote computer.
+
+## MBUS device
+This integration has been tested with several simple USB devices sold on [e-bay](https://www.ebay.com/). Search for MBUS USB slave. Not that some devices uses EVEN parity (default is ODD) when connecting.
+
+## Setup
+When using [HACS](https://hacs.xyz/), search for AMSHAN on Configuration/Integrations page.
+Please not that some MBUS serial devices uses EVEN parity (the default is ODD).
