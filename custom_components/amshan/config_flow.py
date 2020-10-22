@@ -1,15 +1,14 @@
 """Config flow for AMS HAN meter integration."""
-import asyncio
-from asyncio import AbstractEventLoop, Queue
+from asyncio import AbstractEventLoop, Queue, wait_for
 from enum import Enum
 import logging
 import socket
-import typing
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from serial import SerialException
 
-from amshan import autodecoder, obis_map
-from homeassistant import config_entries, core, exceptions
+from amshan import obis_map
+from amshan.autodecoder import AutoDecoder
+from homeassistant import config_entries
 from homeassistant.helpers.typing import HomeAssistantType
 import voluptuous as vol
 
@@ -115,7 +114,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
-                typing.cast(HomeAssistantType, self.hass).loop,
+                cast(HomeAssistantType, self.hass).loop,
                 ConnectionType.SERIAL,
                 user_input,
             )
@@ -139,7 +138,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
-                typing.cast(HomeAssistantType, self.hass).loop,
+                cast(HomeAssistantType, self.hass).loop,
                 ConnectionType.NETWORK,
                 user_input,
             )
@@ -175,10 +174,10 @@ class ConfigFlowValidation:
 
     async def _async_get_meter_info(self, measure_queue: "Queue[bytes]") -> MeterInfo:
         """Decode meter data stream and return meter information if available."""
-        decoder = autodecoder.AutoDecoder()
+        decoder = AutoDecoder()
 
         for _ in range(MAX_FRAME_SEARCH_COUNT):
-            measure = await asyncio.wait_for(measure_queue.get(), MAX_FRAME_WAIT_TIME)
+            measure = await wait_for(measure_queue.get(), MAX_FRAME_WAIT_TIME)
             decoded_measure = decoder.decode_frame_content(measure)
             if decoded_measure:
                 if (

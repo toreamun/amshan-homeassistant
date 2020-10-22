@@ -2,7 +2,6 @@
 from asyncio import Queue
 from datetime import datetime
 import logging
-import typing
 from typing import (
     Any,
     Callable,
@@ -14,6 +13,7 @@ from typing import (
     Optional,
     Set,
     Union,
+    cast,
 )
 
 from amshan.autodecoder import AutoDecoder
@@ -92,13 +92,25 @@ class NorhanEntity(Entity):
             None, None, None, None, "Meter type"
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
-            None, None, None, None, "OBIS List version identifier",
+            None,
+            None,
+            None,
+            None,
+            "OBIS List version identifier",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
-            POWER_WATT, None, None, ICON_POWER_IMPORT, "Active power import (Q1+Q4)",
+            POWER_WATT,
+            None,
+            None,
+            ICON_POWER_IMPORT,
+            "Active power import (Q1+Q4)",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
-            POWER_WATT, None, None, ICON_POWER_EXPORT, "Active power export (Q2+Q3)",
+            POWER_WATT,
+            None,
+            None,
+            ICON_POWER_EXPORT,
+            "Active power export (Q2+Q3)",
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT: EntitySetup(
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
@@ -203,13 +215,15 @@ class NorhanEntity(Entity):
                 self._measure_data = measure_data
                 if _LOGGER.isEnabledFor(logging.DEBUG):
                     _LOGGER.debug(
-                        "Update sensor %s with state %s", self.unique_id, self.state,
+                        "Update sensor %s with state %s",
+                        self.unique_id,
+                        self.state,
                     )
                 self.async_write_ha_state()
 
         # subscribe to update events for this meter
         self._async_remove_dispatcher = async_dispatcher_connect(
-            typing.cast(HomeAssistantType, self.hass),
+            cast(HomeAssistantType, self.hass),
             self._new_measure_signal_name,
             on_new_measure,
         )
@@ -365,7 +379,8 @@ class MeterMeasureProcessor:
         new_measures = [x.measure_id for x in entities]
         self._known_measures.update(new_measures)
         _LOGGER.debug(
-            "Register new entities for measures: %s", new_measures,
+            "Register new entities for measures: %s",
+            new_measures,
         )
         self._async_add_entities(list(entities), True)
 
@@ -383,7 +398,9 @@ class MeterMeasureProcessor:
                         f"{DOMAIN}_measure_available_meterid_{meter_id}"
                     )
                 entity = NorhanEntity(
-                    measure_id, measure_data, self._new_measure_signal_name,
+                    measure_id,
+                    measure_data,
+                    self._new_measure_signal_name,
                 )
                 new_enitities.append(entity)
             else:

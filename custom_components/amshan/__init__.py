@@ -2,8 +2,7 @@
 from asyncio import AbstractEventLoop, BaseProtocol, Queue
 from datetime import datetime
 import logging
-import typing
-from typing import Any, Dict, Mapping, NamedTuple, Union
+from typing import Any, Dict, Mapping, NamedTuple, Union, cast
 
 from amshan import obis_map
 from amshan.meter_connection import (
@@ -137,7 +136,9 @@ async def async_close(
 
 
 def setup_meter_connection(
-    loop: AbstractEventLoop, config: Mapping[str, Any], measure_queue: "Queue[bytes]",
+    loop: AbstractEventLoop,
+    config: Mapping[str, Any],
+    measure_queue: "Queue[bytes]",
 ) -> ConnectionManager:
     """Initialize ConnectionManager using configured connection type."""
     connection_factory = get_connection_factory(loop, config, measure_queue)
@@ -145,19 +146,19 @@ def setup_meter_connection(
 
 
 def get_connection_factory(
-    loop: AbstractEventLoop, config: Mapping[str, Any], measure_queue: "Queue[bytes]",
+    loop: AbstractEventLoop,
+    config: Mapping[str, Any],
+    measure_queue: "Queue[bytes]",
 ) -> AsyncConnectionFactory:
     """Get connection factory based on configured connection type."""
 
     async def tcp_connection_factory() -> MeterTransportProtocol:
         connection = await loop.create_connection(
-            lambda: typing.cast(
-                BaseProtocol, SmartMeterFrameContentProtocol(measure_queue)
-            ),
+            lambda: cast(BaseProtocol, SmartMeterFrameContentProtocol(measure_queue)),
             host=config[CONF_TCP_HOST],
             port=config[CONF_TCP_PORT],
         )
-        return typing.cast(MeterTransportProtocol, connection)
+        return cast(MeterTransportProtocol, connection)
 
     async def serial_connection_factory() -> MeterTransportProtocol:
         connection = await serial_asyncio.create_serial_connection(
@@ -172,7 +173,7 @@ def get_connection_factory(
             rtscts=config[CONF_SERIAL_RTSCTS],
             dsrdtr=config[CONF_SERIAL_DSRDTR],
         )
-        return typing.cast(MeterTransportProtocol, connection)
+        return cast(MeterTransportProtocol, connection)
 
     # select tcp or serial connection factory
     connection_factory = (
@@ -200,6 +201,4 @@ class MeterInfo(NamedTuple):
         cls, measure_data: Dict[str, Union[str, int, float, datetime]]
     ) -> "MeterInfo":
         """Create MeterInfo from measure_data dictionary."""
-        return cls(
-            *[typing.cast(str, measure_data[key]) for key in METER_DATA_INFO_KEYS]
-        )
+        return cls(*[cast(str, measure_data[key]) for key in METER_DATA_INFO_KEYS])
