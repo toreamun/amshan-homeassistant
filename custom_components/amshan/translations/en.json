@@ -41,5 +41,14 @@
         "title": "Select connection type"
       }
     }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "scale_factor": "Currents, power and energy scale factor. Default and most common is 1."
+        }
+      }
+    }
   }
 }

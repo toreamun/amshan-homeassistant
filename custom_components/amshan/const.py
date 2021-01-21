@@ -5,6 +5,7 @@ DOMAIN = "amshan"
 
 ENTRY_DATA_MEASURE_QUEUE = "measure_queue"
 ENTRY_DATA_MEASURE_CONNECTION = "connection"
+ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE = "update_listener_unsubscribe"
 
 ICON_POWER_IMPORT = "mdi:flash"
 ICON_POWER_EXPORT = "mdi:flash-outline"
@@ -24,6 +25,7 @@ HOSTNAME_IP4_IP6_REGEX = (
     "^(" + IPV4_ADR_REGEX + ")|(" + HOSTNAME_REGEX + ")|(" + IPV6_ADR_REGEX + ")$"
 )
 
+# Configuration and options
 CONF_SERIAL_PORT = hassconst.CONF_PORT
 CONF_SERIAL_BAUDRATE = "baudrate"
 CONF_SERIAL_PARITY = "parity"
@@ -35,3 +37,5 @@ CONF_SERIAL_DSRDTR = "dsrdtr"
 
 CONF_TCP_HOST = hassconst.CONF_HOST
 CONF_TCP_PORT = hassconst.CONF_PORT
+
+CONF_OPTIONS_SCALE_FACTOR = "scale_factor"

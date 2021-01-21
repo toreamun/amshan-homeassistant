@@ -33,6 +33,7 @@ from .const import (
     DOMAIN,
     ENTRY_DATA_MEASURE_CONNECTION,
     ENTRY_DATA_MEASURE_QUEUE,
+    ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE,
     HOSTNAME_IP4_IP6_REGEX,
 )
 
@@ -106,11 +107,19 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool
         hass.config_entries.async_forward_entry_setup(entry, PLATFORM_TYPE)
     )
 
+    # Listen for config entry changes and reload when changed.
+    listener = entry.add_update_listener(async_config_entry_changed)
+    hass.data[DOMAIN][entry.entry_id][ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE] = listener
+
     return True
 
 
 async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    unsubscribe_update_listener = hass.data[DOMAIN][entry.entry_id][
+        ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE
+    ]
+
     is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
         entry, PLATFORM_TYPE
     )
@@ -121,8 +130,16 @@ async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> boo
             resources[ENTRY_DATA_MEASURE_QUEUE],
             resources[ENTRY_DATA_MEASURE_CONNECTION],
         )
+        unsubscribe_update_listener()
 
     return is_plaform_unload_success
+
+
+@callback
+async def async_config_entry_changed(hass: HomeAssistantType, entry: ConfigEntry):
+    """Handle config entry chnaged callback."""
+    _LOGGER.info("Config entry has change. Reload integration.")
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_close(

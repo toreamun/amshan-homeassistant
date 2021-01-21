@@ -2,6 +2,7 @@
 from asyncio import Queue
 from datetime import datetime
 import logging
+from math import floor
 from typing import (
     Any,
     Callable,
@@ -30,6 +31,7 @@ from homeassistant.helpers.typing import HomeAssistantType
 
 from . import MeterInfo
 from .const import (
+    CONF_OPTIONS_SCALE_FACTOR,
     DOMAIN,
     ENTRY_DATA_MEASURE_QUEUE,
     ICON_COUNTER,
@@ -48,6 +50,9 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 class EntitySetup(NamedTuple):
     """Entity setup."""
+
+    """Use custom configured scaling."""
+    use_configured_scaling: bool
 
     """The unit of measurement of entity, if any."""
     unit: Optional[str]
@@ -73,7 +78,7 @@ async def async_setup_entry(
     """Add hantest sensor platform from a config_entry."""
     measure_queue = hass.data[DOMAIN][config_entry.entry_id][ENTRY_DATA_MEASURE_QUEUE]
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
-        hass, async_add_entities, measure_queue
+        hass, config_entry, async_add_entities, measure_queue
     )
     hass.loop.create_task(processor.async_process_measures_loop())
 
@@ -83,15 +88,16 @@ class NorhanEntity(Entity):
 
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            None, None, None, None, "Meter ID"
+            False, None, None, None, None, "Meter ID"
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            None, None, None, None, "Meter manufacturer"
+            False, None, None, None, None, "Meter manufacturer"
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            None, None, None, None, "Meter type"
+            False, None, None, None, None, "Meter type"
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
+            False,
             None,
             None,
             None,
@@ -99,76 +105,84 @@ class NorhanEntity(Entity):
             "OBIS List version identifier",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
+            True,
             POWER_WATT,
             None,
-            None,
+            0,
             ICON_POWER_IMPORT,
             "Active power import (Q1+Q4)",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
+            True,
             POWER_WATT,
             None,
-            None,
+            0,
             ICON_POWER_EXPORT,
             "Active power export (Q2+Q3)",
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT: EntitySetup(
+            True,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             0.001,
-            None,
+            3,
             ICON_POWER_IMPORT,
             "Reactive power import (Q1+Q2)",
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT: EntitySetup(
+            True,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             0.001,
-            None,
+            3,
             ICON_POWER_EXPORT,
             "Reactive power export (Q3+Q4)",
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L1: EntitySetup(
-            UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL1 Current phase L1"
+            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL1 Current phase L1"
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L2: EntitySetup(
-            UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL2 Current phase L2"
+            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL2 Current phase L2"
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L3: EntitySetup(
-            UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL3 Current phase L3"
+            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL3 Current phase L3"
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L1: EntitySetup(
-            UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL1 Phase voltage"
+            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL1 Phase voltage"
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L2: EntitySetup(
-            UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL2 Phase voltage"
+            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL2 Phase voltage"
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L3: EntitySetup(
-            UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL3 Phase voltage"
+            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL3 Phase voltage"
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR: EntitySetup(
+            True,
             ENERGY_KILO_WATT_HOUR,
             0.001,
-            None,
+            2,
             ICON_COUNTER,
             "Cumulative hourly active import energy (A+) (Q1+Q4)",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR: EntitySetup(
+            True,
             ENERGY_KILO_WATT_HOUR,
             0.001,
-            None,
+            2,
             ICON_COUNTER,
             "Cumulative hourly active export energy (A-) (Q2+Q3)",
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR: EntitySetup(
+            True,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             0.001,
-            None,
+            2,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R+) (Q1+Q2)",
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR: EntitySetup(
+            True,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             0.001,
-            None,
+            2,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R-) (Q3+Q4)",
         ),
@@ -179,6 +193,7 @@ class NorhanEntity(Entity):
         measure_id: str,
         measure_data: Dict[str, Union[str, int, float, datetime]],
         new_measure_signal_name: str,
+        scale_factor: float,
     ) -> None:
         """Initialize NorhanEntity class."""
         if measure_id is None:
@@ -198,6 +213,9 @@ class NorhanEntity(Entity):
         self._new_measure_signal_name = new_measure_signal_name
         self._async_remove_dispatcher: Optional[Callable[[], None]] = None
         self._meter_info: MeterInfo = MeterInfo.from_measure_data(measure_data)
+        self._scale_factor = (
+            int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
+        )
 
     @staticmethod
     def is_measure_id_supported(measure_id: str) -> bool:
@@ -267,11 +285,18 @@ class NorhanEntity(Entity):
         if isinstance(measure, datetime):
             return measure.isoformat()
 
-        if self._entity_setup.decimals:
-            measure = round(measure, self._entity_setup.decimals)
-
-        if self._entity_setup.scale:
+        if self._entity_setup.scale is not None:
             measure = measure * self._entity_setup.scale
+
+        if self._entity_setup.use_configured_scaling:
+            measure = measure * self._scale_factor
+
+        if self._entity_setup.decimals is not None:
+            measure = (
+                round(measure)
+                if self._entity_setup.decimals == 0
+                else round(measure, self._entity_setup.decimals)
+            )
 
         return measure
 
@@ -308,6 +333,7 @@ class MeterMeasureProcessor:
     def __init__(
         self,
         hass: HomeAssistantType,
+        config_entry: ConfigEntry,
         async_add_entities: Callable[[List[Entity], bool], None],
         measure_queue: "Queue[bytes]",
     ) -> None:
@@ -318,6 +344,9 @@ class MeterMeasureProcessor:
         self._decoder: AutoDecoder = AutoDecoder()
         self._known_measures: Set[str] = set()
         self._new_measure_signal_name: Optional[str] = None
+        self._scale_factor = float(
+            config_entry.options.get(CONF_OPTIONS_SCALE_FACTOR, 1)
+        )
 
     async def async_process_measures_loop(self) -> None:
         """Start the processing loop. The method exits when None is received from queue."""
@@ -401,6 +430,7 @@ class MeterMeasureProcessor:
                     measure_id,
                     measure_data,
                     self._new_measure_signal_name,
+                    self._scale_factor,
                 )
                 new_enitities.append(entity)
             else:

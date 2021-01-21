@@ -4,12 +4,19 @@ from enum import Enum
 import logging
 import socket
 from typing import Any, Dict, Optional, cast
-from serial import SerialException
 
 from amshan import obis_map
 from amshan.autodecoder import AutoDecoder
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    CONN_CLASS_LOCAL_PUSH,
+    ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
+)
+from homeassistant.core import callback
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import HomeAssistantType
+from serial import SerialException
 import voluptuous as vol
 
 from . import (
@@ -28,7 +35,7 @@ from . import (
     MeterInfo,
     get_connection_factory,
 )
-from .const import DOMAIN  # pylint:disable=unused-import
+from .const import CONF_OPTIONS_SCALE_FACTOR, DOMAIN  # pylint:disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,15 +88,21 @@ class ConnectionType(Enum):
     NETWORK = 2
 
 
-class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for amshan."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
+    CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:
         """Initialize AmsHanConfigFlow class."""
         self._validator = ConfigFlowValidation()
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> "OptionsFlow":
+        """Get options flow handler."""
+        return AmsHanOptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -282,3 +295,34 @@ class ConfigFlowValidation:
             return await self._async_validate_connection(loop, user_input)
 
         return None
+
+
+class AmsHanOptionsFlowHandler(OptionsFlow):
+    """Victor Smart-Kill config flow options handler."""
+
+    def __init__(self, config_entry):
+        """Initialize HACS options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+
+    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
+        """Manage the options."""
+        return await self.async_step_user()
+
+    async def async_step_user(self, user_input=None):
+        """Handle a flow initialized by the user."""
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(title="", data=self.options)
+
+        options = {
+            vol.Optional(
+                CONF_OPTIONS_SCALE_FACTOR,
+                default=self.options.get(CONF_OPTIONS_SCALE_FACTOR, 1.0),
+            ): cv.positive_float,
+        }
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(options),
+        )
