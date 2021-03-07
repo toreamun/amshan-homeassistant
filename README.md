@@ -27,4 +27,4 @@ Please not that some MBUS serial devices uses EVEN parity (the default is ODD).
 
 ## Options
 
-It is possible to configure a scale factor of currents, power and energy measurements. Some meters are known to to not be connected directly to main power, but through a current transformer with a reduction factor of 50. In that case, you may have to use 0.5 as scale factor.
+It is possible to configure a scale factor of currents, power and energy measurements. Some meters are known to to not be connected directly to main power, but through a current transformer with a reduction factor of 50.
