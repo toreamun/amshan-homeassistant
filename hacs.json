@@ -1,8 +1,10 @@
 {
   "name": "AmsHan",
-  "domains": ["sensor"],
+  "domains": [
+    "sensor"
+  ],
   "iot_class": "Local Push",
-  "homeassistant": "0.110.0",
+  "homeassistant": "0.115.0",
   "country": "NO",
   "render_readme": true
 }

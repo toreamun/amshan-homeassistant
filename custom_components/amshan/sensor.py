@@ -20,7 +20,16 @@ from typing import (
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import DEVICE_CLASS_POWER, ENERGY_KILO_WATT_HOUR, POWER_WATT
+from homeassistant.const import (
+    DEVICE_CLASS_CURRENT,
+    DEVICE_CLASS_ENERGY,
+    DEVICE_CLASS_POWER,
+    DEVICE_CLASS_VOLTAGE,
+    ELECTRIC_CURRENT_AMPERE,
+    ELECTRIC_POTENTIAL_VOLT,
+    ENERGY_KILO_WATT_HOUR,
+    POWER_WATT,
+)
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
@@ -39,10 +48,8 @@ from .const import (
     ICON_POWER_EXPORT,
     ICON_POWER_IMPORT,
     ICON_VOLTAGE,
-    UNIT_CURRENT_AMPERE,
     UNIT_KILO_VOLT_AMPERE_REACTIVE,
     UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-    UNIT_VOLTAGE,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -53,6 +60,9 @@ class EntitySetup(NamedTuple):
 
     """Use custom configured scaling."""
     use_configured_scaling: bool
+
+    """The device class of entity, if any."""
+    device_class: Optional[str]
 
     """The unit of measurement of entity, if any."""
     unit: Optional[str]
@@ -88,16 +98,17 @@ class NorhanEntity(Entity):
 
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            False, None, None, None, None, "Meter ID"
+            False, None, None, None, None, None, "Meter ID"
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            False, None, None, None, None, "Meter manufacturer"
+            False, None, None, None, None, None, "Meter manufacturer"
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            False, None, None, None, None, "Meter type"
+            False, None, None, None, None, None, "Meter type"
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
             False,
+            None,
             None,
             None,
             None,
@@ -106,6 +117,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
             True,
+            DEVICE_CLASS_POWER,
             POWER_WATT,
             None,
             0,
@@ -114,6 +126,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
             True,
+            DEVICE_CLASS_POWER,
             POWER_WATT,
             None,
             0,
@@ -122,6 +135,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT: EntitySetup(
             True,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             0.001,
             3,
@@ -130,6 +144,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT: EntitySetup(
             True,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             0.001,
             3,
@@ -137,25 +152,62 @@ class NorhanEntity(Entity):
             "Reactive power export (Q3+Q4)",
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L1: EntitySetup(
-            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL1 Current phase L1"
+            True,
+            DEVICE_CLASS_CURRENT,
+            ELECTRIC_CURRENT_AMPERE,
+            None,
+            3,
+            ICON_CURRENT,
+            "IL1 Current phase L1",
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L2: EntitySetup(
-            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL2 Current phase L2"
+            True,
+            DEVICE_CLASS_CURRENT,
+            ELECTRIC_CURRENT_AMPERE,
+            None,
+            3,
+            ICON_CURRENT,
+            "IL2 Current phase L2",
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L3: EntitySetup(
-            True, UNIT_CURRENT_AMPERE, None, 3, ICON_CURRENT, "IL3 Current phase L3"
+            True,
+            DEVICE_CLASS_CURRENT,
+            ELECTRIC_CURRENT_AMPERE,
+            None,
+            3,
+            ICON_CURRENT,
+            "IL3 Current phase L3",
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L1: EntitySetup(
-            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL1 Phase voltage"
+            False,
+            DEVICE_CLASS_VOLTAGE,
+            ELECTRIC_POTENTIAL_VOLT,
+            None,
+            1,
+            ICON_VOLTAGE,
+            "UL1 Phase voltage",
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L2: EntitySetup(
-            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL2 Phase voltage"
+            False,
+            DEVICE_CLASS_VOLTAGE,
+            ELECTRIC_POTENTIAL_VOLT,
+            None,
+            1,
+            ICON_VOLTAGE,
+            "UL2 Phase voltage",
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L3: EntitySetup(
-            False, UNIT_VOLTAGE, None, 1, ICON_VOLTAGE, "UL3 Phase voltage"
+            False,
+            DEVICE_CLASS_VOLTAGE,
+            ELECTRIC_POTENTIAL_VOLT,
+            None,
+            1,
+            ICON_VOLTAGE,
+            "UL3 Phase voltage",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR: EntitySetup(
             True,
+            DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
             0.001,
             2,
@@ -164,6 +216,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR: EntitySetup(
             True,
+            DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
             0.001,
             2,
@@ -172,6 +225,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR: EntitySetup(
             True,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             0.001,
             2,
@@ -180,6 +234,7 @@ class NorhanEntity(Entity):
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR: EntitySetup(
             True,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             0.001,
             2,
@@ -314,7 +369,7 @@ class NorhanEntity(Entity):
     @property
     def device_class(self) -> Optional[str]:
         """Return the class of this device, from component DEVICE_CLASSES."""
-        return DEVICE_CLASS_POWER
+        return self._entity_setup.device_class
 
     @property
     def unit_of_measurement(self) -> Optional[str]:
