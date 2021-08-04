@@ -19,6 +19,7 @@ from typing import (
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
+from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
@@ -37,6 +38,7 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.util.dt import utc_from_timestamp
 
 from . import MeterInfo
 from .const import (
@@ -67,11 +69,17 @@ class EntitySetup(NamedTuple):
     """The unit of measurement of entity, if any."""
     unit: Optional[str]
 
+    """The state class of entity, if any."""
+    state_class: Optional[str]
+
     """Scaling, if any, to be done one the measured value to be in correct unit."""
     scale: Optional[float]
 
     """Specify a number to round the measure source value to that number of decimals."""
     decimals: Optional[int]
+
+    """Set to true for metered entities (have a value that keeps increasing until reset, like energy consumption or production)."""
+    is_metered_entity: bool
 
     """The icon to use in the frontend, if any."""
     icon: Optional[str]
@@ -93,18 +101,18 @@ async def async_setup_entry(
     hass.loop.create_task(processor.async_process_measures_loop())
 
 
-class NorhanEntity(Entity):
+class NorhanEntity(SensorEntity):
     """Representation of a Norhan sensor."""
 
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            False, None, None, None, None, None, "Meter ID"
+            False, None, None, None, None, None, False, None, "Meter ID"
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            False, None, None, None, None, None, "Meter manufacturer"
+            False, None, None, None, None, None, False, None, "Meter manufacturer"
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            False, None, None, None, None, None, "Meter type"
+            False, None, None, None, None, None, False, None, "Meter type"
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
             False,
@@ -113,14 +121,18 @@ class NorhanEntity(Entity):
             None,
             None,
             None,
+            False,
+            None,
             "OBIS List version identifier",
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
             True,
             DEVICE_CLASS_POWER,
             POWER_WATT,
+            STATE_CLASS_MEASUREMENT,
             None,
             0,
+            False,
             ICON_POWER_IMPORT,
             "Active power import (Q1+Q4)",
         ),
@@ -128,8 +140,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_POWER,
             POWER_WATT,
+            STATE_CLASS_MEASUREMENT,
             None,
             0,
+            False,
             ICON_POWER_EXPORT,
             "Active power export (Q2+Q3)",
         ),
@@ -137,8 +151,10 @@ class NorhanEntity(Entity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             3,
+            False,
             ICON_POWER_IMPORT,
             "Reactive power import (Q1+Q2)",
         ),
@@ -146,8 +162,10 @@ class NorhanEntity(Entity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             3,
+            False,
             ICON_POWER_EXPORT,
             "Reactive power export (Q3+Q4)",
         ),
@@ -155,8 +173,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
+            STATE_CLASS_MEASUREMENT,
             None,
             3,
+            False,
             ICON_CURRENT,
             "IL1 Current phase L1",
         ),
@@ -164,8 +184,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
+            STATE_CLASS_MEASUREMENT,
             None,
             3,
+            False,
             ICON_CURRENT,
             "IL2 Current phase L2",
         ),
@@ -173,8 +195,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
+            STATE_CLASS_MEASUREMENT,
             None,
             3,
+            False,
             ICON_CURRENT,
             "IL3 Current phase L3",
         ),
@@ -182,8 +206,10 @@ class NorhanEntity(Entity):
             False,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
+            STATE_CLASS_MEASUREMENT,
             None,
             1,
+            False,
             ICON_VOLTAGE,
             "UL1 Phase voltage",
         ),
@@ -191,8 +217,10 @@ class NorhanEntity(Entity):
             False,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
+            STATE_CLASS_MEASUREMENT,
             None,
             1,
+            False,
             ICON_VOLTAGE,
             "UL2 Phase voltage",
         ),
@@ -200,8 +228,10 @@ class NorhanEntity(Entity):
             False,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
+            STATE_CLASS_MEASUREMENT,
             None,
             1,
+            False,
             ICON_VOLTAGE,
             "UL3 Phase voltage",
         ),
@@ -209,8 +239,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             2,
+            True,
             ICON_COUNTER,
             "Cumulative hourly active import energy (A+) (Q1+Q4)",
         ),
@@ -218,8 +250,10 @@ class NorhanEntity(Entity):
             True,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             2,
+            True,
             ICON_COUNTER,
             "Cumulative hourly active export energy (A-) (Q2+Q3)",
         ),
@@ -227,8 +261,10 @@ class NorhanEntity(Entity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             2,
+            True,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R+) (Q1+Q2)",
         ),
@@ -236,8 +272,10 @@ class NorhanEntity(Entity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
+            STATE_CLASS_MEASUREMENT,
             0.001,
             2,
+            True,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R-) (Q3+Q4)",
         ),
@@ -354,6 +392,16 @@ class NorhanEntity(Entity):
             )
 
         return measure
+
+    @property
+    def state_class(self) -> Optional[str]:
+        """Return the state class of this entity, if any."""
+        return self._entity_setup.state_class
+
+    @property
+    def last_reset(self) -> Optional[datetime]:
+        """Return last_reset at UNIX epoch if metered entity."""
+        return utc_from_timestamp(0) if self._entity_setup.is_metered_entity else None
 
     @property
     def device_info(self) -> Optional[Dict[str, Any]]:
