@@ -78,9 +78,6 @@ class EntitySetup(NamedTuple):
     """Specify a number to round the measure source value to that number of decimals."""
     decimals: Optional[int]
 
-    """Set to true for metered entities (have a value that keeps increasing until reset, like energy consumption or production)."""
-    is_metered_entity: bool
-
     """The icon to use in the frontend, if any."""
     icon: Optional[str]
 
@@ -106,13 +103,13 @@ class NorhanEntity(SensorEntity):
 
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            False, None, None, None, None, None, False, None, "Meter ID"
+            False, None, None, None, None, None, None, "Meter ID"
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            False, None, None, None, None, None, False, None, "Meter manufacturer"
+            False, None, None, None, None, None, None, "Meter manufacturer"
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            False, None, None, None, None, None, False, None, "Meter type"
+            False, None, None, None, None, None, None, "Meter type"
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
             False,
@@ -121,7 +118,6 @@ class NorhanEntity(SensorEntity):
             None,
             None,
             None,
-            False,
             None,
             "OBIS List version identifier",
         ),
@@ -132,7 +128,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             0,
-            False,
             ICON_POWER_IMPORT,
             "Active power import (Q1+Q4)",
         ),
@@ -143,7 +138,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             0,
-            False,
             ICON_POWER_EXPORT,
             "Active power export (Q2+Q3)",
         ),
@@ -154,7 +148,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             3,
-            False,
             ICON_POWER_IMPORT,
             "Reactive power import (Q1+Q2)",
         ),
@@ -165,7 +158,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             3,
-            False,
             ICON_POWER_EXPORT,
             "Reactive power export (Q3+Q4)",
         ),
@@ -176,7 +168,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             3,
-            False,
             ICON_CURRENT,
             "IL1 Current phase L1",
         ),
@@ -187,7 +178,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             3,
-            False,
             ICON_CURRENT,
             "IL2 Current phase L2",
         ),
@@ -198,7 +188,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             3,
-            False,
             ICON_CURRENT,
             "IL3 Current phase L3",
         ),
@@ -209,7 +198,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             1,
-            False,
             ICON_VOLTAGE,
             "UL1 Phase voltage",
         ),
@@ -220,7 +208,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             1,
-            False,
             ICON_VOLTAGE,
             "UL2 Phase voltage",
         ),
@@ -231,7 +218,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             None,
             1,
-            False,
             ICON_VOLTAGE,
             "UL3 Phase voltage",
         ),
@@ -242,7 +228,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             2,
-            True,
             ICON_COUNTER,
             "Cumulative hourly active import energy (A+) (Q1+Q4)",
         ),
@@ -253,7 +238,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             2,
-            True,
             ICON_COUNTER,
             "Cumulative hourly active export energy (A-) (Q2+Q3)",
         ),
@@ -264,7 +248,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             2,
-            True,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R+) (Q1+Q2)",
         ),
@@ -275,7 +258,6 @@ class NorhanEntity(SensorEntity):
             STATE_CLASS_MEASUREMENT,
             0.001,
             2,
-            True,
             ICON_COUNTER,
             "Cumulative hourly reactive import energy (R-) (Q3+Q4)",
         ),
@@ -397,11 +379,6 @@ class NorhanEntity(SensorEntity):
     def state_class(self) -> Optional[str]:
         """Return the state class of this entity, if any."""
         return self._entity_setup.state_class
-
-    @property
-    def last_reset(self) -> Optional[datetime]:
-        """Return last_reset at UNIX epoch if metered entity."""
-        return utc_from_timestamp(0) if self._entity_setup.is_metered_entity else None
 
     @property
     def device_info(self) -> Optional[Dict[str, Any]]:
