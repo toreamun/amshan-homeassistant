@@ -481,7 +481,19 @@ class MeterMeasureProcessor:
         meter_id = measure_data.get(obis_map.NEK_HAN_FIELD_METER_ID)
         if meter_id:
             missing_measures = measure_data.keys() - self._known_measures
+
             if missing_measures:
+
+                # Add hourly sensors before measurement is available to avoid long delay
+                missing_measures.update(
+                    [
+                        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
+                        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
+                        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
+                        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
+                    ]
+                )
+
                 new_enitities = self._create_entities(
                     missing_measures, str(meter_id), measure_data
                 )
