@@ -9,7 +9,7 @@
     "@toreamun"
   ],
   "requirements": [
-    "pyserial-asyncio==0.5",
+    "pyserial-asyncio==0.6",
     "amshan==0.4.2"
   ],
   "iot_class": "local_push"
