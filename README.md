@@ -28,3 +28,9 @@ Please not that some MBUS serial devices uses EVEN parity (the default is ODD).
 ## Options
 
 It is possible to configure a scale factor of currents, power and energy measurements. Some meters are known to to not be connected directly to main power, but through a current transformer with a reduction factor of 50.
+
+## Remote MBUS
+You can connect to a remote MBUS device using TCP/IP by selecting connection type "network" in setup.
+
+If your device is connected to a Linux host, then ser2net is a good choice to run on the host to bridge the typical MBUS serial interface to TCP/IP. This ser2net config (/etc/ser2net.conf) line makes a 2400 baud serial MBUS device available on TCP/IP port 3001:
+`3001:raw:600:/dev/ttyUSB0:2400 8DATABITS EVEN 1STOPBIT`
