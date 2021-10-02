@@ -19,7 +19,11 @@ from typing import (
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
-from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT, SensorEntity
+from homeassistant.components.sensor import (
+    STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL_INCREASING,
+    SensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
@@ -225,7 +229,7 @@ class NorhanEntity(SensorEntity):
             True,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
-            STATE_CLASS_MEASUREMENT,
+            STATE_CLASS_TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -235,7 +239,7 @@ class NorhanEntity(SensorEntity):
             True,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
-            STATE_CLASS_MEASUREMENT,
+            STATE_CLASS_TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -245,7 +249,7 @@ class NorhanEntity(SensorEntity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-            STATE_CLASS_MEASUREMENT,
+            STATE_CLASS_TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -255,7 +259,7 @@ class NorhanEntity(SensorEntity):
             True,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-            STATE_CLASS_MEASUREMENT,
+            STATE_CLASS_TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
