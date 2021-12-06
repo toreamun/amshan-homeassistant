@@ -353,7 +353,7 @@ class NorhanEntity(SensorEntity):
     @property
     def state(self) -> Union[None, str, int, float]:
         """Return the state of the entity."""
-        measure = self._measure_data[self._measure_id]
+        measure = self._measure_data.get(self._measure_id)
 
         if measure is None:
             return None
