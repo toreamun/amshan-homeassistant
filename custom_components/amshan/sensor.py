@@ -4,7 +4,6 @@ from datetime import datetime
 import logging
 from math import floor
 from typing import (
-    Any,
     Callable,
     ClassVar,
     Dict,
@@ -40,9 +39,8 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
-from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.typing import HomeAssistantType
-from homeassistant.util.dt import utc_from_timestamp
 
 from . import MeterInfo
 from .const import (
@@ -385,15 +383,15 @@ class NorhanEntity(SensorEntity):
         return self._entity_setup.state_class
 
     @property
-    def device_info(self) -> Optional[Dict[str, Any]]:
+    def device_info(self) -> DeviceInfo:
         """Return device specific attributes."""
-        return {
-            "identifiers": {(DOMAIN, self._meter_info.unique_id)},
-            "name": "HAN port",
-            "manufacturer": self._meter_info.manufacturer,
-            "model": self._meter_info.type,
-            "sw_version": self._meter_info.list_version_id,
-        }
+        return DeviceInfo(
+            name="HAN port",
+            identifiers={(DOMAIN, self._meter_info.unique_id)},
+            manufacturer=self._meter_info.manufacturer,
+            model=self._meter_info.type,
+            sw_version=self._meter_info.list_version_id,
+        )
 
     @property
     def device_class(self) -> Optional[str]:
@@ -485,7 +483,10 @@ class MeterMeasureProcessor:
             if missing_measures:
 
                 # Add hourly sensors before measurement is available to avoid long delay
-                if obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR not in self._known_measures:
+                if (
+                    obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR
+                    not in self._known_measures
+                ):
                     missing_measures.update(
                         [
                             obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
