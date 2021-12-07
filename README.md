@@ -18,12 +18,14 @@ You need to have a MBUS slave device connected to to the HAN (Home Area Network)
 
 ## MBUS device
 
-This integration has been tested with several simple USB devices sold on e-bay. Search for MBUS USB slave. Not that some devices uses EVEN parity (default is ODD) when connecting.
+This integration has been tested with several simple USB devices sold on e-bay. Search for MBUS USB slave. Note that some devices uses EVEN parity (default is ODD) when connecting.
 
 ## Setup
 
-Search for AMSHAN on Configuration/Integrations page after installing (most simple is to use HACS).
+Search for AMSHAN on Configuration/Integrations page after installing (most simple is to use [HACS](https://hacs.xyz/)).
 Please not that some MBUS serial devices uses EVEN parity (the default is ODD).
+
+When using serial device setup, it is often usefull to use a device-by-id device name on Linux to have a stable device name. You then use a device name starting with /dev/serial/by-id/. You can find the device id in hardware menu of the host if you are running Hassio (select Supervisor -> System -> Host -> ... -> Hardware).
 
 ## Options
 
@@ -33,5 +35,16 @@ It is possible to configure a scale factor of currents, power and energy measure
 
 You can connect to a remote MBUS device using TCP/IP by selecting connection type "network" in setup.
 
-If your device is connected to a Linux host, then ser2net is a good choice to run on the host to bridge the typical MBUS serial interface to TCP/IP. This ser2net config (/etc/ser2net.conf) line makes a 2400 baud serial MBUS device available on TCP/IP port 3001:
+If your device is connected to a Linux host, then ser2net is a good choice to run on the host to bridge the typical MBUS serial interface to TCP/IP. This [ser2net](https://github.com/cminyard/ser2net) config (/etc/ser2net.conf) line makes a 2400 baud, even parity, 8 data bits and one stop bit serial MBUS device available on TCP/IP port 3001:
 `3001:raw:600:/dev/ttyUSB0:2400 8DATABITS EVEN 1STOPBIT`
+
+Similar for ser2net yaml config (/etc/ser2net.yaml):
+
+```
+connection: &han
+   accepter: tcp,3001
+   enable: on
+   options:
+      kickolduser: true
+   connector: serialdev,/dev/ttyUSB0,2400e81,local
+```
