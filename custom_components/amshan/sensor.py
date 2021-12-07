@@ -39,7 +39,7 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.helpers.typing import HomeAssistantType
 
 from . import MeterInfo
@@ -66,7 +66,7 @@ class EntitySetup(NamedTuple):
     use_configured_scaling: bool
 
     """The category of the entity, if any."""
-    entity_category: Union[str, None]
+    entity_category: Union[EntityCategory, str, None]
 
     """The device class of entity, if any."""
     device_class: Optional[str]
@@ -109,7 +109,7 @@ class NorhanEntity(SensorEntity):
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
             False,
-            "diagnostic",
+            EntityCategory.DIAGNOSTIC,
             None,
             None,
             None,
@@ -120,7 +120,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
             False,
-            "diagnostic",
+            EntityCategory.DIAGNOSTIC,
             None,
             None,
             None,
@@ -131,7 +131,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
             False,
-            "diagnostic",
+            EntityCategory.DIAGNOSTIC,
             None,
             None,
             None,
@@ -142,7 +142,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
             False,
-            "diagnostic",
+            EntityCategory.DIAGNOSTIC,
             None,
             None,
             None,
@@ -451,7 +451,7 @@ class NorhanEntity(SensorEntity):
         return self._entity_setup.icon
 
     @property
-    def entity_category(self) -> Union[str, None]:
+    def entity_category(self) -> Union[EntityCategory, str, None]:
         """Return the category of the entity, if any."""
         return self._entity_setup.entity_category
 
