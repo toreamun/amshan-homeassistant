@@ -18,13 +18,13 @@ from typing import (
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    DEVICE_CLASS_CURRENT,
-    DEVICE_CLASS_ENERGY,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_VOLTAGE,
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
@@ -65,7 +65,7 @@ class EntitySetup(NamedTuple):
     entity_category: Union[EntityCategory, str, None]
 
     """The device class of entity, if any."""
-    device_class: Optional[str]
+    device_class: Optional[SensorDeviceClass]
 
     """The unit of measurement of entity, if any."""
     unit: Optional[str]
@@ -150,7 +150,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_POWER,
+            SensorDeviceClass.POWER,
             POWER_WATT,
             SensorStateClass.MEASUREMENT,
             None,
@@ -161,7 +161,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_POWER,
+            SensorDeviceClass.POWER,
             POWER_WATT,
             SensorStateClass.MEASUREMENT,
             None,
@@ -194,7 +194,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_CURRENT_L1: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_CURRENT,
+            SensorDeviceClass.CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             SensorStateClass.MEASUREMENT,
             None,
@@ -205,7 +205,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_CURRENT_L2: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_CURRENT,
+            SensorDeviceClass.CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             SensorStateClass.MEASUREMENT,
             None,
@@ -216,7 +216,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_CURRENT_L3: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_CURRENT,
+            SensorDeviceClass.CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             SensorStateClass.MEASUREMENT,
             None,
@@ -227,7 +227,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_VOLTAGE_L1: EntitySetup(
             False,
             None,
-            DEVICE_CLASS_VOLTAGE,
+            SensorDeviceClass.VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             SensorStateClass.MEASUREMENT,
             None,
@@ -238,7 +238,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_VOLTAGE_L2: EntitySetup(
             False,
             None,
-            DEVICE_CLASS_VOLTAGE,
+            SensorDeviceClass.VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             SensorStateClass.MEASUREMENT,
             None,
@@ -249,7 +249,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_VOLTAGE_L3: EntitySetup(
             False,
             None,
-            DEVICE_CLASS_VOLTAGE,
+            SensorDeviceClass.VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             SensorStateClass.MEASUREMENT,
             None,
@@ -260,7 +260,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_ENERGY,
+            SensorDeviceClass.ENERGY,
             ENERGY_KILO_WATT_HOUR,
             SensorStateClass.TOTAL_INCREASING,
             0.001,
@@ -271,7 +271,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR: EntitySetup(
             True,
             None,
-            DEVICE_CLASS_ENERGY,
+            SensorDeviceClass.ENERGY,
             ENERGY_KILO_WATT_HOUR,
             SensorStateClass.TOTAL_INCREASING,
             0.001,
@@ -432,8 +432,8 @@ class NorhanEntity(SensorEntity):
         )
 
     @property
-    def device_class(self) -> Optional[str]:
-        """Return the class of this device, from component DEVICE_CLASSES."""
+    def device_class(self) -> Optional[SensorDeviceClass]:
+        """Return the class of this device, from SensorDeviceClass."""
         return self._entity_setup.device_class
 
     @property
