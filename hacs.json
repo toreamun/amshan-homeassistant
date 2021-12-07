@@ -4,7 +4,7 @@
     "sensor"
   ],
   "iot_class": "Local Push",
-  "homeassistant": "2021.9.0",
+  "homeassistant": "2021.11.0",
   "country": "NO",
   "render_readme": true
 }
