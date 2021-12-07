@@ -12,6 +12,9 @@ Integrate HAN-port of Aidon, Kaifa and Kamstrum meters used in Norway with Home 
 
 This integration supports connecting to MBUS device using serial port or TCP-IP address/port.
 
+![image](https://user-images.githubusercontent.com/12134766/145044580-4c072af7-2bdf-4b6c-894c-38d5789ba9be.png)
+
+
 ## Conecting MBUS device
 
 You need to have a MBUS slave device connected to to the HAN (Home Area Network) port of your meter. The HAN-port is a RJ45 socket where only pin 1 and 2 is used. Connect wires from pin 1 and 2 to the MBUS slave device. Then connect the MBUS device to your computer. Most devices uses USB to become a serial device when connected. You can then relay (i.e. using net2ser and socat) the signal to TCP/IP if your device is connected to a remote computer.
