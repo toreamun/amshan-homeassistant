@@ -18,11 +18,7 @@ from typing import (
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
-from homeassistant.components.sensor import (
-    STATE_CLASS_MEASUREMENT,
-    STATE_CLASS_TOTAL_INCREASING,
-    SensorEntity,
-)
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
@@ -75,7 +71,7 @@ class EntitySetup(NamedTuple):
     unit: Optional[str]
 
     """The state class of entity, if any."""
-    state_class: Optional[str]
+    state_class: Optional[SensorStateClass]
 
     """Scaling, if any, to be done one the measured value to be in correct unit."""
     scale: Optional[float]
@@ -156,7 +152,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_POWER,
             POWER_WATT,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             0,
             ICON_POWER_IMPORT,
@@ -167,7 +163,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_POWER,
             POWER_WATT,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             0,
             ICON_POWER_EXPORT,
@@ -178,7 +174,7 @@ class NorhanEntity(SensorEntity):
             None,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             0.001,
             3,
             ICON_POWER_IMPORT,
@@ -189,7 +185,7 @@ class NorhanEntity(SensorEntity):
             None,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             0.001,
             3,
             ICON_POWER_EXPORT,
@@ -200,7 +196,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             3,
             ICON_CURRENT,
@@ -211,7 +207,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             3,
             ICON_CURRENT,
@@ -222,7 +218,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             3,
             ICON_CURRENT,
@@ -233,7 +229,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             1,
             ICON_VOLTAGE,
@@ -244,7 +240,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             1,
             ICON_VOLTAGE,
@@ -255,7 +251,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
-            STATE_CLASS_MEASUREMENT,
+            SensorStateClass.MEASUREMENT,
             None,
             1,
             ICON_VOLTAGE,
@@ -266,7 +262,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
-            STATE_CLASS_TOTAL_INCREASING,
+            SensorStateClass.TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -277,7 +273,7 @@ class NorhanEntity(SensorEntity):
             None,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
-            STATE_CLASS_TOTAL_INCREASING,
+            SensorStateClass.TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -288,7 +284,7 @@ class NorhanEntity(SensorEntity):
             None,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-            STATE_CLASS_TOTAL_INCREASING,
+            SensorStateClass.TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -299,7 +295,7 @@ class NorhanEntity(SensorEntity):
             None,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-            STATE_CLASS_TOTAL_INCREASING,
+            SensorStateClass.TOTAL_INCREASING,
             0.001,
             2,
             ICON_COUNTER,
@@ -420,7 +416,7 @@ class NorhanEntity(SensorEntity):
         return measure
 
     @property
-    def state_class(self) -> Optional[str]:
+    def state_class(self) -> Optional[SensorStateClass]:
         """Return the state class of this entity, if any."""
         return self._entity_setup.state_class
 
