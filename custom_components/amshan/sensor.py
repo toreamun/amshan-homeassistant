@@ -39,7 +39,7 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.helpers.typing import HomeAssistantType
 
 from . import MeterInfo
@@ -64,6 +64,9 @@ class EntitySetup(NamedTuple):
 
     """Use custom configured scaling."""
     use_configured_scaling: bool
+
+    """The category of the entity, if any."""
+    entity_category: Union[EntityCategory, str, None]
 
     """The device class of entity, if any."""
     device_class: Optional[str]
@@ -105,16 +108,41 @@ class NorhanEntity(SensorEntity):
 
     ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            False, None, None, None, None, None, None, "Meter ID"
+            False,
+            EntityCategory.DIAGNOSTIC,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "Meter ID",
         ),
         obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            False, None, None, None, None, None, None, "Meter manufacturer"
+            False,
+            EntityCategory.DIAGNOSTIC,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "Meter manufacturer",
         ),
         obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            False, None, None, None, None, None, None, "Meter type"
+            False,
+            EntityCategory.DIAGNOSTIC,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "Meter type",
         ),
         obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
             False,
+            EntityCategory.DIAGNOSTIC,
             None,
             None,
             None,
@@ -125,6 +153,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_POWER,
             POWER_WATT,
             STATE_CLASS_MEASUREMENT,
@@ -135,6 +164,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_POWER,
             POWER_WATT,
             STATE_CLASS_MEASUREMENT,
@@ -146,6 +176,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT: EntitySetup(
             True,
             None,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             STATE_CLASS_MEASUREMENT,
             0.001,
@@ -156,6 +187,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT: EntitySetup(
             True,
             None,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE,
             STATE_CLASS_MEASUREMENT,
             0.001,
@@ -165,6 +197,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L1: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             STATE_CLASS_MEASUREMENT,
@@ -175,6 +208,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L2: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             STATE_CLASS_MEASUREMENT,
@@ -185,6 +219,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_CURRENT_L3: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_CURRENT,
             ELECTRIC_CURRENT_AMPERE,
             STATE_CLASS_MEASUREMENT,
@@ -195,6 +230,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L1: EntitySetup(
             False,
+            None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             STATE_CLASS_MEASUREMENT,
@@ -205,6 +241,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L2: EntitySetup(
             False,
+            None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             STATE_CLASS_MEASUREMENT,
@@ -215,6 +252,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_VOLTAGE_L3: EntitySetup(
             False,
+            None,
             DEVICE_CLASS_VOLTAGE,
             ELECTRIC_POTENTIAL_VOLT,
             STATE_CLASS_MEASUREMENT,
@@ -225,6 +263,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
             STATE_CLASS_TOTAL_INCREASING,
@@ -235,6 +274,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR: EntitySetup(
             True,
+            None,
             DEVICE_CLASS_ENERGY,
             ENERGY_KILO_WATT_HOUR,
             STATE_CLASS_TOTAL_INCREASING,
@@ -246,6 +286,7 @@ class NorhanEntity(SensorEntity):
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR: EntitySetup(
             True,
             None,
+            None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             STATE_CLASS_TOTAL_INCREASING,
             0.001,
@@ -255,6 +296,7 @@ class NorhanEntity(SensorEntity):
         ),
         obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR: EntitySetup(
             True,
+            None,
             None,
             UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             STATE_CLASS_TOTAL_INCREASING,
@@ -407,6 +449,11 @@ class NorhanEntity(SensorEntity):
     def icon(self) -> Optional[str]:
         """Return the icon to use in the frontend, if any."""
         return self._entity_setup.icon
+
+    @property
+    def entity_category(self) -> Union[EntityCategory, str, None]:
+        """Return the category of the entity, if any."""
+        return self._entity_setup.entity_category
 
 
 class MeterMeasureProcessor:
