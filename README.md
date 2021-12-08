@@ -29,6 +29,8 @@ Search for AMSHAN on Configuration/Integrations page after installing (most simp
 Please not that some MBUS serial devices uses EVEN parity (the default is ODD).
 
 When using serial device setup, it is often usefull to use a device-by-id device name on Linux to have a stable device name. You then use a device name starting with /dev/serial/by-id/. You can find the device id in hardware menu of the host if you are running Hassio (select Supervisor -> System -> Host -> ... -> Hardware).
+![image](https://user-images.githubusercontent.com/12134766/145182598-d3fa3e7b-2784-4f6a-9aed-b90c66de20fa.png)
+
 
 ## Options
 
