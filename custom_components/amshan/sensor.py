@@ -387,8 +387,8 @@ class NorhanEntity(SensorEntity):
         return f"{self._meter_info.manufacturer} {self._entity_setup.name}"
 
     @property
-    def state(self) -> Union[None, str, int, float]:
-        """Return the state of the entity."""
+    def native_value(self) -> Union[None, str, int, float]:
+        """Return the native value of the entity."""
         measure = self._measure_data.get(self._measure_id)
 
         if measure is None:
@@ -437,8 +437,8 @@ class NorhanEntity(SensorEntity):
         return self._entity_setup.device_class
 
     @property
-    def unit_of_measurement(self) -> Optional[str]:
-        """Return the unit of measurement of this entity, if any."""
+    def native_unit_of_measurement(self) -> Optional[str]:
+        """Return the native unit of measurement of this entity, if any."""
         return self._entity_setup.unit
 
     @property
