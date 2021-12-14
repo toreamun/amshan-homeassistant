@@ -24,6 +24,9 @@ Du trenger å ha en [M-BUS](https://en.wikipedia.org/wiki/Meter-Bus) slave enhet
 
 Denne integrasjonen har blitt testet med flere ulike enkle M-BUS USB-enheter solgt på e-bay. Flere ulike tilsvarende enheter er også i salg i Norge. Søk etter MBUS USB slave.
 
+![image](https://user-images.githubusercontent.com/12134766/146074371-e3e4468a-7f5c-4ed6-8496-073666c1b0de.png)
+
+
 ## Home Assistant oppsett
 
 Søk etter AMSHAN under integrasjoner etter installasjon (det enkleste er å benytte [HACS](https://hacs.xyz/)).
