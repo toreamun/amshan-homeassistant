@@ -1,7 +1,7 @@
 {
   "domain": "amshan",
   "name": "AMS HAN meter",
-  "version": "2021.12.0",
+  "version": "2021.12.2",
   "config_flow": true,
   "documentation": "https://github.com/toreamun/amshan-homeassistant",
   "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
@@ -10,7 +10,7 @@
   ],
   "requirements": [
     "pyserial-asyncio==0.6",
-    "amshan==0.4.2"
+    "amshan==2021.12.1"
   ],
   "iot_class": "local_push"
 }
