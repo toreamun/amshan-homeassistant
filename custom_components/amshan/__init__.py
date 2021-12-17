@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from asyncio import AbstractEventLoop, BaseProtocol, Queue
+from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Mapping, NamedTuple, cast
+from typing import Any, Mapping, cast
 
 from amshan import obis_map
 from amshan.meter_connection import (
@@ -202,7 +203,8 @@ def get_connection_factory(
     return connection_factory
 
 
-class MeterInfo(NamedTuple):
+@dataclass
+class MeterInfo:
     """Info about meter."""
 
     manufacturer: str
