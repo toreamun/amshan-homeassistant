@@ -1,8 +1,10 @@
 """The AMS HAN meter integration."""
+from __future__ import annotations
+
 from asyncio import AbstractEventLoop, BaseProtocol, Queue
 from datetime import datetime
 import logging
-from typing import Any, Dict, Mapping, NamedTuple, Union, cast
+from typing import Any, Mapping, NamedTuple, cast
 
 from amshan import obis_map
 from amshan.meter_connection import (
@@ -86,7 +88,7 @@ async def async_setup(hass: HomeAssistantType, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
-    measure_queue: "Queue[bytes]" = Queue(loop=hass.loop)
+    measure_queue: Queue[bytes] = Queue(loop=hass.loop)
     connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
 
     hass.data[DOMAIN][entry.entry_id] = {
@@ -155,7 +157,7 @@ async def async_close(
 def setup_meter_connection(
     loop: AbstractEventLoop,
     config: Mapping[str, Any],
-    measure_queue: "Queue[bytes]",
+    measure_queue: Queue[bytes],
 ) -> ConnectionManager:
     """Initialize ConnectionManager using configured connection type."""
     connection_factory = get_connection_factory(loop, config, measure_queue)
@@ -165,7 +167,7 @@ def setup_meter_connection(
 def get_connection_factory(
     loop: AbstractEventLoop,
     config: Mapping[str, Any],
-    measure_queue: "Queue[bytes]",
+    measure_queue: Queue[bytes],
 ) -> AsyncConnectionFactory:
     """Get connection factory based on configured connection type."""
 
@@ -215,7 +217,7 @@ class MeterInfo(NamedTuple):
 
     @classmethod
     def from_measure_data(
-        cls, measure_data: Dict[str, Union[str, int, float, datetime]]
-    ) -> "MeterInfo":
+        cls, measure_data: dict[str, str | int | float | datetime]
+    ) -> MeterInfo:
         """Create MeterInfo from measure_data dictionary."""
         return cls(*[cast(str, measure_data[key]) for key in METER_DATA_INFO_KEYS])

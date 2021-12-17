@@ -1,20 +1,11 @@
 """amshan platform."""
+from __future__ import annotations
+
 from asyncio import Queue
 from datetime import datetime
 import logging
 from math import floor
-from typing import (
-    Callable,
-    ClassVar,
-    Dict,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-    cast,
-)
+from typing import Callable, ClassVar, Iterable, NamedTuple, cast
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
@@ -62,25 +53,25 @@ class EntitySetup(NamedTuple):
     use_configured_scaling: bool
 
     """The category of the entity, if any."""
-    entity_category: Union[EntityCategory, str, None]
+    entity_category: EntityCategory | str | None
 
     """The device class of entity, if any."""
-    device_class: Optional[SensorDeviceClass]
+    device_class: SensorDeviceClass | None
 
     """The unit of measurement of entity, if any."""
-    unit: Optional[str]
+    unit: str | None
 
     """The state class of entity, if any."""
-    state_class: Optional[SensorStateClass]
+    state_class: SensorStateClass | None
 
     """Scaling, if any, to be done one the measured value to be in correct unit."""
-    scale: Optional[float]
+    scale: float | None
 
     """Specify a number to round the measure source value to that number of decimals."""
-    decimals: Optional[int]
+    decimals: int | None
 
     """The icon to use in the frontend, if any."""
-    icon: Optional[str]
+    icon: str | None
 
     """The name of the entity."""
     name: str
@@ -89,7 +80,7 @@ class EntitySetup(NamedTuple):
 async def async_setup_entry(
     hass: HomeAssistantType,
     config_entry: ConfigEntry,
-    async_add_entities: Callable[[List[Entity], bool], None],
+    async_add_entities: Callable[[list[Entity], bool], None],
 ):
     """Add hantest sensor platform from a config_entry."""
     measure_queue = hass.data[DOMAIN][config_entry.entry_id][ENTRY_DATA_MEASURE_QUEUE]
@@ -102,7 +93,7 @@ async def async_setup_entry(
 class NorhanEntity(SensorEntity):
     """Representation of a Norhan sensor."""
 
-    ENTITY_SETUPS: ClassVar[Dict[str, EntitySetup]] = {
+    ENTITY_SETUPS: ClassVar[dict[str, EntitySetup]] = {
         obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
             False,
             EntityCategory.DIAGNOSTIC,
@@ -306,7 +297,7 @@ class NorhanEntity(SensorEntity):
     def __init__(
         self,
         measure_id: str,
-        measure_data: Dict[str, Union[str, int, float, datetime]],
+        measure_data: dict[str, str | int | float | datetime],
         new_measure_signal_name: str,
         scale_factor: float,
     ) -> None:
@@ -326,7 +317,7 @@ class NorhanEntity(SensorEntity):
         self._measure_data = measure_data
         self._entity_setup = NorhanEntity.ENTITY_SETUPS[measure_id]
         self._new_measure_signal_name = new_measure_signal_name
-        self._async_remove_dispatcher: Optional[Callable[[], None]] = None
+        self._async_remove_dispatcher: Callable[[], None] | None = None
         self._meter_info: MeterInfo = MeterInfo.from_measure_data(measure_data)
         self._scale_factor = (
             int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
@@ -342,7 +333,7 @@ class NorhanEntity(SensorEntity):
 
         @callback
         def on_new_measure(
-            measure_data: Dict[str, Union[str, int, float, datetime]]
+            measure_data: dict[str, str | int | float | datetime]
         ) -> None:
             if self._measure_id in measure_data:
                 self._measure_data = measure_data
@@ -377,17 +368,17 @@ class NorhanEntity(SensorEntity):
         return False
 
     @property
-    def unique_id(self) -> Optional[str]:
+    def unique_id(self) -> str | None:
         """Return the unique id."""
         return f"{self._meter_info.manufacturer}-{self._meter_info.meter_id}-{self._measure_id}"
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Return the name of the entity."""
         return f"{self._meter_info.manufacturer} {self._entity_setup.name}"
 
     @property
-    def native_value(self) -> Union[None, str, int, float]:
+    def native_value(self) -> None | str | int | float:
         """Return the native value of the entity."""
         measure = self._measure_data.get(self._measure_id)
 
@@ -416,7 +407,7 @@ class NorhanEntity(SensorEntity):
         return measure
 
     @property
-    def state_class(self) -> Optional[SensorStateClass]:
+    def state_class(self) -> SensorStateClass | None:
         """Return the state class of this entity, if any."""
         return self._entity_setup.state_class
 
@@ -432,22 +423,22 @@ class NorhanEntity(SensorEntity):
         )
 
     @property
-    def device_class(self) -> Optional[SensorDeviceClass]:
+    def device_class(self) -> SensorDeviceClass | None:
         """Return the class of this device, from SensorDeviceClass."""
         return self._entity_setup.device_class
 
     @property
-    def native_unit_of_measurement(self) -> Optional[str]:
+    def native_unit_of_measurement(self) -> str | None:
         """Return the native unit of measurement of this entity, if any."""
         return self._entity_setup.unit
 
     @property
-    def icon(self) -> Optional[str]:
+    def icon(self) -> str | None:
         """Return the icon to use in the frontend, if any."""
         return self._entity_setup.icon
 
     @property
-    def entity_category(self) -> Union[EntityCategory, str, None]:
+    def entity_category(self) -> EntityCategory | str | None:
         """Return the category of the entity, if any."""
         return self._entity_setup.entity_category
 
@@ -459,16 +450,16 @@ class MeterMeasureProcessor:
         self,
         hass: HomeAssistantType,
         config_entry: ConfigEntry,
-        async_add_entities: Callable[[List[Entity], bool], None],
-        measure_queue: "Queue[bytes]",
+        async_add_entities: Callable[[list[Entity], bool], None],
+        measure_queue: Queue[bytes],
     ) -> None:
         """Initialize MeterMeasureProcessor class."""
         self._hass = hass
         self._async_add_entities = async_add_entities
         self._measure_queue = measure_queue
         self._decoder: AutoDecoder = AutoDecoder()
-        self._known_measures: Set[str] = set()
-        self._new_measure_signal_name: Optional[str] = None
+        self._known_measures: set[str] = set()
+        self._new_measure_signal_name: str | None = None
         self._scale_factor = float(
             config_entry.options.get(CONF_OPTIONS_SCALE_FACTOR, 1)
         )
@@ -490,7 +481,7 @@ class MeterMeasureProcessor:
 
     async def _async_decode_next_valid_frame(
         self,
-    ) -> Dict[str, Union[str, int, float, datetime]]:
+    ) -> dict[str, str | int | float | datetime]:
         while True:
             measure_frame_content = await self._measure_queue.get()
             if not measure_frame_content:
@@ -505,7 +496,7 @@ class MeterMeasureProcessor:
             _LOGGER.warning("Could not decode frame: %s", measure_frame_content.hex())
 
     def _update_entities(
-        self, measure_data: Dict[str, Union[str, int, float, datetime]]
+        self, measure_data: dict[str, str | int | float | datetime]
     ) -> None:
         self._ensure_entities_are_created(measure_data)
 
@@ -516,7 +507,7 @@ class MeterMeasureProcessor:
             )
 
     def _ensure_entities_are_created(
-        self, measure_data: Dict[str, Union[str, int, float, datetime]]
+        self, measure_data: dict[str, str | int | float | datetime]
     ) -> None:
         # meter_id is required to register entities (required for unique_id).
         meter_id = measure_data.get(obis_map.NEK_HAN_FIELD_METER_ID)
@@ -545,7 +536,7 @@ class MeterMeasureProcessor:
                 if new_enitities:
                     self._add_entities(new_enitities)
 
-    def _add_entities(self, entities: List[NorhanEntity]):
+    def _add_entities(self, entities: list[NorhanEntity]):
         new_measures = [x.measure_id for x in entities]
         self._known_measures.update(new_measures)
         _LOGGER.debug(
@@ -558,9 +549,9 @@ class MeterMeasureProcessor:
         self,
         new_measures: Iterable[str],
         meter_id: str,
-        measure_data: Dict[str, Union[str, int, float, datetime]],
-    ) -> List[NorhanEntity]:
-        new_enitities: List[NorhanEntity] = []
+        measure_data: dict[str, str | int | float | datetime],
+    ) -> list[NorhanEntity]:
+        new_enitities: list[NorhanEntity] = []
         for measure_id in new_measures:
             if NorhanEntity.is_measure_id_supported(measure_id):
                 if not self._new_measure_signal_name:

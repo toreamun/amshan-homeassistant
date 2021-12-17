@@ -1,9 +1,11 @@
 """Config flow for AMS HAN meter integration."""
+from __future__ import annotations
+
 from asyncio import AbstractEventLoop, Queue, wait_for
 from enum import Enum
 import logging
 import socket
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 from amshan import obis_map
 from amshan.autodecoder import AutoDecoder
@@ -100,13 +102,13 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> "OptionsFlow":
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get options flow handler."""
         return AmsHanOptionsFlowHandler(config_entry)
 
     async def async_step_user(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Handle the initial step."""
         if user_input is not None:
             connection_type = self._validator.validate_connection_type_input(user_input)
@@ -122,8 +124,8 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_serial_connection(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
@@ -146,8 +148,8 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_network_connection(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
@@ -175,7 +177,7 @@ class ConfigFlowValidation:
 
     def __init__(self) -> None:
         """Initialize ConfigFlowValidation class."""
-        self.errors: Dict[str, Any] = {}
+        self.errors: dict[str, Any] = {}
 
     def _set_base_error(self, error_key: str) -> None:
         """
@@ -201,10 +203,10 @@ class ConfigFlowValidation:
         raise TimeoutError()
 
     async def _async_validate_connection(
-        self, loop: AbstractEventLoop, user_input: Dict[str, Any]
-    ) -> Optional[MeterInfo]:
+        self, loop: AbstractEventLoop, user_input: dict[str, Any]
+    ) -> MeterInfo | None:
         """Try to connect an get meter information to validate connection data."""
-        measure_queue: "Queue[bytes]" = Queue()
+        measure_queue: Queue[bytes] = Queue()
         connection_factory = get_connection_factory(loop, user_input, measure_queue)
 
         transport = None
@@ -243,7 +245,7 @@ class ConfigFlowValidation:
                 transport.close()
 
     async def _async_validate_host_address(
-        self, loop: AbstractEventLoop, user_input: Dict[str, Any]
+        self, loop: AbstractEventLoop, user_input: dict[str, Any]
     ) -> None:
         try:
             await loop.getaddrinfo(
@@ -258,7 +260,7 @@ class ConfigFlowValidation:
             self.errors[CONF_SERIAL_PORT] = VALIDATION_ERROR_HOST_CHECK
 
     def _validate_schema(
-        self, connection_type: ConnectionType, user_input: Dict[str, Any]
+        self, connection_type: ConnectionType, user_input: dict[str, Any]
     ) -> None:
         schema = (
             SERIAL_SCHEMA if connection_type == ConnectionType.SERIAL else TCP_SCHEMA
@@ -271,7 +273,7 @@ class ConfigFlowValidation:
                     self.errors[element] = VALIDATION_ERROR_VOLUPTUOUS_BASE + element
 
     def validate_connection_type_input(
-        self, user_input: Dict[str, Any]
+        self, user_input: dict[str, Any]
     ) -> ConnectionType:
         """Validate user input from first step."""
         self.errors = {}
@@ -281,8 +283,8 @@ class ConfigFlowValidation:
         self,
         loop: AbstractEventLoop,
         connection_type: ConnectionType,
-        user_input: Dict[str, Any],
-    ) -> Optional[MeterInfo]:
+        user_input: dict[str, Any],
+    ) -> MeterInfo | None:
         """Validate user input from connection step and try connection."""
         self.errors = {}
 

@@ -1,4 +1,6 @@
 """Constants for the AMS HAN meter integration."""
+from __future__ import annotations
+
 import homeassistant.const as hassconst
 
 DOMAIN = "amshan"
