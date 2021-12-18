@@ -255,6 +255,7 @@ class AmsHanEntity(SensorEntity):
         measure_data: dict[str, str | int | float | datetime],
         new_measure_signal_name: str,
         scale_factor: float,
+        meter_info: MeterInfo,
     ) -> None:
         """Initialize AmsHanEntity class."""
         if entity_description is None:
@@ -272,7 +273,9 @@ class AmsHanEntity(SensorEntity):
         self._measure_data = measure_data
         self._new_measure_signal_name = new_measure_signal_name
         self._async_remove_dispatcher: Callable[[], None] | None = None
-        self._meter_info: MeterInfo = MeterInfo.from_measure_data(measure_data)
+        self._meter_info: MeterInfo = (
+            meter_info if meter_info else MeterInfo.from_measure_data(measure_data)
+        )
         self._scale_factor = (
             int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
         )
@@ -387,6 +390,7 @@ class MeterMeasureProcessor:
         self._scale_factor = float(
             config_entry.options.get(CONF_OPTIONS_SCALE_FACTOR, 1)
         )
+        self._meter_info: MeterInfo | None = None
 
     async def async_process_measures_loop(self) -> None:
         """Start the processing loop. The method exits when None is received from queue."""
@@ -482,11 +486,15 @@ class MeterMeasureProcessor:
                     self._new_measure_signal_name = (
                         f"{DOMAIN}_measure_available_meterid_{meter_id}"
                     )
+                if not self._meter_info:
+                    self._meter_info = MeterInfo.from_measure_data(measure_data)
+
                 entity = AmsHanEntity(
                     SENSOR_TYPES[measure_id],
                     measure_data,
                     self._new_measure_signal_name,
                     self._scale_factor,
+                    self._meter_info,
                 )
                 new_enitities.append(entity)
             else:
