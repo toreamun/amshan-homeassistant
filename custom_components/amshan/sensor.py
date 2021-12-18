@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 from math import floor
-from typing import Callable, ClassVar, Iterable, cast
+from typing import Callable, Iterable, cast
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
@@ -49,19 +49,188 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass
-class EntitySetup:
-    """Entity setup."""
+class AmsHanSensorEntityDescription(SensorEntityDescription):
+    """A class that describes sensor entities."""
 
-    sensor_entity_description: SensorEntityDescription
-
-    """Scaling, if any, to be done one the measured value to be in correct unit."""
     scale: float | None = None
+    """Scaling, if any, to be done one the measured value to be in correct unit."""
 
-    """Specify a number to round the measure source value to that number of decimals."""
     decimals: int | None = None
+    """Specify a number to round the measure source value to that number of decimals."""
 
-    """Use custom configured scaling."""
     use_configured_scaling: bool = False
+    """Use custom configured scaling."""
+
+
+SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
+    sensor.key: sensor
+    for sensor in [
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_METER_ID,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            name="Meter ID",
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_METER_MANUFACTURER,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            name="Meter manufacturer",
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_METER_TYPE,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            name="Meter type",
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            name="OBIS List version identifier",
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT,
+            device_class=SensorDeviceClass.POWER,
+            native_unit_of_measurement=POWER_WATT,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_POWER_IMPORT,
+            name="Active power import (Q1+Q4)",
+            decimals=0,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT,
+            device_class=SensorDeviceClass.POWER,
+            native_unit_of_measurement=POWER_WATT,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_POWER_EXPORT,
+            name="Active power export (Q2+Q3)",
+            decimals=0,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT,
+            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_POWER_IMPORT,
+            name="Reactive power import (Q1+Q2)",
+            scale=0.001,
+            decimals=3,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT,
+            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_POWER_EXPORT,
+            name="Reactive power export (Q3+Q4)",
+            scale=0.001,
+            decimals=3,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_CURRENT_L1,
+            device_class=SensorDeviceClass.CURRENT,
+            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_CURRENT,
+            name="IL1 Current phase L1",
+            decimals=3,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_CURRENT_L2,
+            device_class=SensorDeviceClass.CURRENT,
+            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            state_class=SensorStateClass.MEASUREMENT,
+            name="IL2 Current phase L2",
+            decimals=3,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_CURRENT_L3,
+            device_class=SensorDeviceClass.CURRENT,
+            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            state_class=SensorStateClass.MEASUREMENT,
+            name="IL3 Current phase L3",
+            decimals=3,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L1,
+            device_class=SensorDeviceClass.VOLTAGE,
+            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_VOLTAGE,
+            name="UL1 Phase voltage",
+            decimals=1,
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L2,
+            device_class=SensorDeviceClass.VOLTAGE,
+            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_VOLTAGE,
+            name="UL2 Phase voltage",
+            decimals=1,
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L3,
+            device_class=SensorDeviceClass.VOLTAGE,
+            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon=ICON_VOLTAGE,
+            name="UL3 Phase voltage",
+            decimals=1,
+            use_configured_scaling=False,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon=ICON_COUNTER,
+            name="Cumulative hourly active import energy (A+) (Q1+Q4)",
+            scale=0.001,
+            decimals=2,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon=ICON_COUNTER,
+            name="Cumulative hourly active export energy (A-) (Q2+Q3)",
+            scale=0.001,
+            decimals=2,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
+            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon=ICON_COUNTER,
+            name="Cumulative hourly reactive import energy (R+) (Q1+Q2)",
+            scale=0.001,
+            decimals=2,
+            use_configured_scaling=True,
+        ),
+        AmsHanSensorEntityDescription(
+            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
+            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon=ICON_COUNTER,
+            name="Cumulative hourly reactive import energy (R-) (Q3+Q4)",
+            scale=0.001,
+            decimals=2,
+            use_configured_scaling=True,
+        ),
+    ]
+}
 
 
 async def async_setup_entry(
@@ -79,209 +248,6 @@ async def async_setup_entry(
 
 class NorhanEntity(SensorEntity):
     """Representation of a Norhan sensor."""
-
-    ENTITY_SETUPS: ClassVar[dict[str, EntitySetup]] = {
-        obis_map.NEK_HAN_FIELD_METER_ID: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_METER_ID,
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="Meter ID",
-            ),
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_METER_MANUFACTURER: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_METER_MANUFACTURER,
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="Meter manufacturer",
-            ),
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_METER_TYPE: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_METER_TYPE,
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="Meter type",
-            ),
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID,
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="OBIS List version identifier",
-            ),
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT,
-                device_class=SensorDeviceClass.POWER,
-                native_unit_of_measurement=POWER_WATT,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_POWER_IMPORT,
-                name="Active power import (Q1+Q4)",
-            ),
-            decimals=0,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT,
-                device_class=SensorDeviceClass.POWER,
-                native_unit_of_measurement=POWER_WATT,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_POWER_EXPORT,
-                name="Active power export (Q2+Q3)",
-            ),
-            decimals=0,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT,
-                native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_POWER_IMPORT,
-                name="Reactive power import (Q1+Q2)",
-            ),
-            scale=0.001,
-            decimals=3,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT,
-                native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_POWER_EXPORT,
-                name="Reactive power export (Q3+Q4)",
-            ),
-            scale=0.001,
-            decimals=3,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_CURRENT_L1: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_CURRENT_L1,
-                device_class=SensorDeviceClass.CURRENT,
-                native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_CURRENT,
-                name="IL1 Current phase L1",
-            ),
-            decimals=3,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_CURRENT_L2: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_CURRENT_L2,
-                device_class=SensorDeviceClass.CURRENT,
-                native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
-                state_class=SensorStateClass.MEASUREMENT,
-                name="IL2 Current phase L2",
-            ),
-            decimals=3,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_CURRENT_L3: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_CURRENT_L3,
-                device_class=SensorDeviceClass.CURRENT,
-                native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
-                state_class=SensorStateClass.MEASUREMENT,
-                name="IL3 Current phase L3",
-            ),
-            decimals=3,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_VOLTAGE_L1: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_VOLTAGE_L1,
-                device_class=SensorDeviceClass.VOLTAGE,
-                native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_VOLTAGE,
-                name="UL1 Phase voltage",
-            ),
-            decimals=1,
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_VOLTAGE_L2: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_VOLTAGE_L2,
-                device_class=SensorDeviceClass.VOLTAGE,
-                native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_VOLTAGE,
-                name="UL2 Phase voltage",
-            ),
-            decimals=1,
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_VOLTAGE_L3: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_VOLTAGE_L3,
-                device_class=SensorDeviceClass.VOLTAGE,
-                native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
-                state_class=SensorStateClass.MEASUREMENT,
-                icon=ICON_VOLTAGE,
-                name="UL3 Phase voltage",
-            ),
-            decimals=1,
-            use_configured_scaling=False,
-        ),
-        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
-                device_class=SensorDeviceClass.ENERGY,
-                native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-                icon=ICON_COUNTER,
-                name="Cumulative hourly active import energy (A+) (Q1+Q4)",
-            ),
-            scale=0.001,
-            decimals=2,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
-                device_class=SensorDeviceClass.ENERGY,
-                native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-                icon=ICON_COUNTER,
-                name="Cumulative hourly active export energy (A-) (Q2+Q3)",
-            ),
-            scale=0.001,
-            decimals=2,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
-                native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-                icon=ICON_COUNTER,
-                name="Cumulative hourly reactive import energy (R+) (Q1+Q2)",
-            ),
-            scale=0.001,
-            decimals=2,
-            use_configured_scaling=True,
-        ),
-        obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR: EntitySetup(
-            SensorEntityDescription(
-                key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
-                native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-                icon=ICON_COUNTER,
-                name="Cumulative hourly reactive import energy (R-) (Q3+Q4)",
-            ),
-            scale=0.001,
-            decimals=2,
-            use_configured_scaling=True,
-        ),
-    }
 
     def __init__(
         self,
@@ -303,8 +269,7 @@ class NorhanEntity(SensorEntity):
             raise TypeError("new_measure_signal_name is required")
 
         self._measure_data = measure_data
-        self._entity_setup = NorhanEntity.ENTITY_SETUPS[measure_id]
-        self.entity_description = self._entity_setup.sensor_entity_description
+        self.entity_description = SENSOR_TYPES[measure_id]
         self._new_measure_signal_name = new_measure_signal_name
         self._async_remove_dispatcher: Callable[[], None] | None = None
         self._meter_info: MeterInfo = MeterInfo.from_measure_data(measure_data)
@@ -315,7 +280,7 @@ class NorhanEntity(SensorEntity):
     @staticmethod
     def is_measure_id_supported(measure_id: str) -> bool:
         """Check if an entity can be created for measure id."""
-        return measure_id in NorhanEntity.ENTITY_SETUPS
+        return measure_id in SENSOR_TYPES
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -375,17 +340,17 @@ class NorhanEntity(SensorEntity):
         if isinstance(measure, datetime):
             return measure.isoformat()
 
-        if self._entity_setup.scale is not None:
-            measure = measure * self._entity_setup.scale
+        if self.entity_description.scale is not None:
+            measure = measure * self.entity_description.scale
 
-        if self._entity_setup.use_configured_scaling:
+        if self.entity_description.use_configured_scaling:
             measure = measure * self._scale_factor
 
-        if self._entity_setup.decimals is not None:
+        if self.entity_description.decimals is not None:
             measure = (
                 round(measure)
-                if self._entity_setup.decimals == 0
-                else round(measure, self._entity_setup.decimals)
+                if self.entity_description.decimals == 0
+                else round(measure, self.entity_description.decimals)
             )
 
         return measure
