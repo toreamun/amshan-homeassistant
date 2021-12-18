@@ -246,8 +246,8 @@ async def async_setup_entry(
     hass.loop.create_task(processor.async_process_measures_loop())
 
 
-class NorhanEntity(SensorEntity):
-    """Representation of a Norhan sensor."""
+class AmsHanEntity(SensorEntity):
+    """Representation of a AmsHan sensor."""
 
     def __init__(
         self,
@@ -256,7 +256,7 @@ class NorhanEntity(SensorEntity):
         new_measure_signal_name: str,
         scale_factor: float,
     ) -> None:
-        """Initialize NorhanEntity class."""
+        """Initialize AmsHanEntity class."""
         if measure_id is None:
             raise TypeError("measure_id is required")
         if measure_data is None:
@@ -460,7 +460,7 @@ class MeterMeasureProcessor:
                 if new_enitities:
                     self._add_entities(new_enitities)
 
-    def _add_entities(self, entities: list[NorhanEntity]):
+    def _add_entities(self, entities: list[AmsHanEntity]):
         new_measures = [x.measure_id for x in entities]
         self._known_measures.update(new_measures)
         _LOGGER.debug(
@@ -474,15 +474,15 @@ class MeterMeasureProcessor:
         new_measures: Iterable[str],
         meter_id: str,
         measure_data: dict[str, str | int | float | datetime],
-    ) -> list[NorhanEntity]:
-        new_enitities: list[NorhanEntity] = []
+    ) -> list[AmsHanEntity]:
+        new_enitities: list[AmsHanEntity] = []
         for measure_id in new_measures:
-            if NorhanEntity.is_measure_id_supported(measure_id):
+            if AmsHanEntity.is_measure_id_supported(measure_id):
                 if not self._new_measure_signal_name:
                     self._new_measure_signal_name = (
                         f"{DOMAIN}_measure_available_meterid_{meter_id}"
                     )
-                entity = NorhanEntity(
+                entity = AmsHanEntity(
                     measure_id,
                     measure_data,
                     self._new_measure_signal_name,
