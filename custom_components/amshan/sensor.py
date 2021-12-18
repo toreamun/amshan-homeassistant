@@ -251,13 +251,13 @@ class AmsHanEntity(SensorEntity):
 
     def __init__(
         self,
-        measure_id: str,
+        entity_description: AmsHanSensorEntityDescription,
         measure_data: dict[str, str | int | float | datetime],
         new_measure_signal_name: str,
         scale_factor: float,
     ) -> None:
         """Initialize AmsHanEntity class."""
-        if measure_id is None:
+        if entity_description is None:
             raise TypeError("measure_id is required")
         if measure_data is None:
             raise TypeError("measure_data is required")
@@ -268,8 +268,8 @@ class AmsHanEntity(SensorEntity):
         if new_measure_signal_name is None:
             raise TypeError("new_measure_signal_name is required")
 
+        self.entity_description = entity_description
         self._measure_data = measure_data
-        self.entity_description = SENSOR_TYPES[measure_id]
         self._new_measure_signal_name = new_measure_signal_name
         self._async_remove_dispatcher: Callable[[], None] | None = None
         self._meter_info: MeterInfo = MeterInfo.from_measure_data(measure_data)
@@ -483,7 +483,7 @@ class MeterMeasureProcessor:
                         f"{DOMAIN}_measure_available_meterid_{meter_id}"
                     )
                 entity = AmsHanEntity(
-                    measure_id,
+                    SENSOR_TYPES[measure_id],
                     measure_data,
                     self._new_measure_signal_name,
                     self._scale_factor,
