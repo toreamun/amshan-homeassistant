@@ -269,7 +269,7 @@ class AmsHanEntity(SensorEntity):
         if new_measure_signal_name is None:
             raise TypeError("new_measure_signal_name is required")
 
-        self.entity_description = entity_description
+        self.entity_description: AmsHanSensorEntityDescription = entity_description
         self._measure_data = measure_data
         self._new_measure_signal_name = new_measure_signal_name
         self._async_remove_dispatcher: Callable[[], None] | None = None
@@ -430,6 +430,7 @@ class MeterMeasureProcessor:
 
         # signal all entities to update with new measure data
         if self._known_measures:
+            assert self._new_measure_signal_name is not None
             async_dispatcher_send(
                 self._hass, self._new_measure_signal_name, measure_data
             )
