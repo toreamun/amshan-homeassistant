@@ -15,7 +15,7 @@ from amshan.meter_connection import (
     SmartMeterFrameContentProtocol,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
@@ -42,7 +42,7 @@ from .const import (
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
-PLATFORM_TYPE = "sensor"
+PLATFORM_TYPE = Platform.SENSOR
 
 SERIAL_SCHEMA_DICT = {
     vol.Required(CONF_SERIAL_PORT): cv.string,
