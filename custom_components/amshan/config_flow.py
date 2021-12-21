@@ -138,7 +138,10 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(meter_info.unique_id)
                 self._abort_if_unique_id_configured()
 
-                title = f"{meter_info.manufacturer} {meter_info.type} connectet to {user_input[CONF_SERIAL_PORT]}"
+                title = (
+                    f"{meter_info.manufacturer} {meter_info.type}"
+                    f" connectet to {user_input[CONF_SERIAL_PORT]}"
+                )
                 return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(

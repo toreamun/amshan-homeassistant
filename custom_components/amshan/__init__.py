@@ -81,7 +81,7 @@ METER_DATA_INFO_KEYS = [
 ]
 
 
-async def async_setup(hass: HomeAssistantType, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
     """Set up the amshan component."""
     hass.data[DOMAIN] = {}
     return True
@@ -103,7 +103,8 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop_close_connection)
 
-    # Don't use hass.async_create_task, but schedule directly on the loop, to avoid blocking startup.
+    # Don't use hass.async_create_task, but schedule directly on the loop,
+    # to avoid blocking startup.
     hass.loop.create_task(connection.connect_loop())
 
     hass.async_create_task(
