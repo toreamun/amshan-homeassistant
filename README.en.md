@@ -34,7 +34,7 @@ When using serial device setup, it is often usefull to use a device-by-id device
 
 ## Options
 
-It is possible to configure a scale factor of currents, power and energy measurements. Some meters are known to to not be connected directly to main power, but through a current transformer with a reduction factor of 50. In that case you can use the scale factor to get correct values.
+It is possible to configure a scale factor of currents, power and energy measurements. Some meters are known to not be connected directly to main power, but through a current transformer with a reduction factor of 50. In that case you can use the scale factor to get correct values.
 
 ## Remote M-BUS
 

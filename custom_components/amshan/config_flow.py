@@ -140,7 +140,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 title = (
                     f"{meter_info.manufacturer} {meter_info.type}"
-                    f" connectet to {user_input[CONF_SERIAL_PORT]}"
+                    f" connected to {user_input[CONF_SERIAL_PORT]}"
                 )
                 return self.async_create_entry(title=title, data=user_input)
 
@@ -165,7 +165,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(meter_info.unique_id)
                 self._abort_if_unique_id_configured()
 
-                title = f"{meter_info.manufacturer} {meter_info.type} connectet to {user_input[CONF_TCP_HOST]} port {user_input[CONF_TCP_PORT]}"
+                title = f"{meter_info.manufacturer} {meter_info.type} connected to {user_input[CONF_TCP_HOST]} port {user_input[CONF_TCP_PORT]}"
                 return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(
@@ -208,7 +208,7 @@ class ConfigFlowValidation:
     async def _async_validate_connection(
         self, loop: AbstractEventLoop, user_input: dict[str, Any]
     ) -> MeterInfo | None:
-        """Try to connect an get meter information to validate connection data."""
+        """Try to connect and get meter information to validate connection data."""
         measure_queue: Queue[bytes] = Queue()
         connection_factory = get_connection_factory(loop, user_input, measure_queue)
 

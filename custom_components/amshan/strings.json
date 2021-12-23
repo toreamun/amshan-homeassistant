@@ -18,7 +18,7 @@
         "title": "Connect to serial device",
         "data": {
           "port": "Serial device name",
-          "baudrate": "Baud rate such as 2400, 9600 or 115200 etc.",
+          "baudrate": "Baud rate such as 2400, 9600, or 115200 etc.",
           "parity": "Parity checking",
           "bytesize": "Number of data bits",
           "stopbits": "Number of stop bits",
