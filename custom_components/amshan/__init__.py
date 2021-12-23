@@ -59,7 +59,7 @@ TCP_SCHEMA_DICT = {
     vol.Required(CONF_TCP_HOST): vol.Match(
         HOSTNAME_IP4_IP6_REGEX, msg="Must be a valid hostname or ip address."
     ),
-    vol.Required(CONF_TCP_PORT): vol.Range(0, 65353),
+    vol.Required(CONF_TCP_PORT): vol.Range(0, 65535),
 }
 
 SERIAL_SCHEMA = vol.Schema(SERIAL_SCHEMA_DICT)

@@ -30,7 +30,7 @@
     },
     "error": {
       "voluptuous_host": "Must be a valid hostname or IP-address",
-      "voluptuous_port": "Must be a valid port number (between 0 and 65353)",
+      "voluptuous_port": "Must be a valid port number (between 0 and 65535)",
       "timeout_connect": "Timeout connecting",
       "timeout_read_frames": "Timeout connecting",
       "cannot_connect": "Failed to connect, please try again",
