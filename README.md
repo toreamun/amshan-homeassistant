@@ -38,7 +38,7 @@ Når man benytter en USB enhet på Linux er det ofte lurt å benytte device-by-i
 
 ## Innstillinger
 
-Det er mulig å benytte en skaleringsfaktor for strøm-, effekt-, og energimålingene. Noen få målere er ikke tilkoblet direkte til strømnettet, men via en strømomformer med en reduksjonsfaktor som halverer målingene. I det tilfellet kan man benytte skaleringsfaktoren til å få riktige verdier.
+Det er mulig å benytte en skaleringsfaktor for strøm-, effekt- og energimålingene. Noen få målere er ikke tilkoblet direkte til strømnettet, men via en strømomformer med en reduksjonsfaktor som halverer målingene. I det tilfellet kan man benytte skaleringsfaktoren til å få riktige verdier.
 
 ## Fjerntilkoblet M-BUS-enhet
 
