@@ -23,7 +23,7 @@
       },
       "serial_connection": {
         "data": {
-          "baudrate": "Baud rate such as 2400, 9600 or 115200 etc.",
+          "baudrate": "Baud rate such as 2400, 9600, or 115200 etc.",
           "bytesize": "Number of data bits",
           "dsrdtr": "Enable hardware (DSR/DTR) flow control",
           "parity": "Parity checking",
@@ -46,7 +46,7 @@
     "step": {
       "user": {
         "data": {
-          "scale_factor": "Currents, power and energy scale factor. Default and most common is 1."
+          "scale_factor": "Currents, power, and energy scale factor. Default, and most common, is 1."
         }
       }
     }

@@ -57,7 +57,7 @@ SERIAL_SCHEMA_DICT = {
 
 TCP_SCHEMA_DICT = {
     vol.Required(CONF_TCP_HOST): vol.Match(
-        HOSTNAME_IP4_IP6_REGEX, msg="Must be a valid hostname or ip address."
+        HOSTNAME_IP4_IP6_REGEX, msg="Must be a valid hostname or an IP address."
     ),
     vol.Required(CONF_TCP_PORT): vol.Range(0, 65535),
 }
@@ -67,7 +67,7 @@ TCP_SCHEMA = vol.Schema(TCP_SCHEMA_DICT)
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
-            vol.Any(SERIAL_SCHEMA, TCP_SCHEMA, msg="Requires tcp or serial settings.")
+            vol.Any(SERIAL_SCHEMA, TCP_SCHEMA, msg="Requires TCP or serial settings.")
         )
     },
     extra=vol.ALLOW_EXTRA,
@@ -142,7 +142,7 @@ async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> boo
 @callback
 async def async_config_entry_changed(hass: HomeAssistantType, entry: ConfigEntry):
     """Handle config entry chnaged callback."""
-    _LOGGER.info("Config entry has change. Reload integration.")
+    _LOGGER.info("Config entry has changed. Reload integration.")
     await hass.config_entries.async_reload(entry.entry_id)
 
 
