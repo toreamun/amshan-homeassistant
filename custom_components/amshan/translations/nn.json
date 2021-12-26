@@ -4,7 +4,7 @@
       "already_configured": "Eininga er allereie konfigurert"
     },
     "error": {
-      "cannot_connect": "Kunne ikkje koble til, ver vennleg og prøv igjen",
+      "cannot_connect": "Kunne ikkje kople til, ver vennleg og prøv igjen",
       "timeout_connect": "Tidsavbrudd ved tilkopling",
       "timeout_read_frames": "Tidsavbrudd ved lesing av data",
       "serial_exception_general": "Kunne ikkje opna serieport. Sjå logg for meir informasjon",
@@ -19,7 +19,7 @@
           "host": "Nettadresse (DNS-namn eller IP-adresse)",
           "port": "TCP/IP portnummer"
         },
-        "title": "Koble til nettverkseining"
+        "title": "Kople til nettverkseining"
       },
       "serial_connection": {
         "data": {
