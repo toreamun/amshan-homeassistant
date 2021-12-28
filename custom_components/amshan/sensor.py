@@ -10,6 +10,7 @@ from typing import Callable, Iterable, cast
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
+from homeassistant import util
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -279,6 +280,10 @@ class AmsHanEntity(SensorEntity):
         self._scale_factor = (
             int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
         )
+        self.entity_id = (
+            "sensor."
+            f"{self._meter_info.manufacturer}_{util.slugify(entity_description.name)}"
+        ).lower()
 
     @staticmethod
     def is_measure_id_supported(measure_id: str) -> bool:
