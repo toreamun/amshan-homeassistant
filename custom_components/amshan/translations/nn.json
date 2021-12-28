@@ -1,0 +1,54 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Eininga er allereie konfigurert"
+    },
+    "error": {
+      "cannot_connect": "Kunne ikkje kople til, ver vennleg og prøv igjen",
+      "timeout_connect": "Tidsavbrudd ved tilkopling",
+      "timeout_read_frames": "Tidsavbrudd ved lesing av data",
+      "serial_exception_general": "Kunne ikkje opna serieport. Sjå logg for meir informasjon",
+      "serial_exception_errno_2": "Kunne ikkje finna serieport",
+      "unknown": "Ukjent feil",
+      "voluptuous_host": "Må vera eit gyldig DNS-namn eller ei IP-adresse",
+      "voluptuous_port": "Må vera eit gyldig portnummer (mellom 0 og 65535)"
+    },
+    "step": {
+      "network_connection": {
+        "data": {
+          "host": "Nettadresse (DNS-namn eller IP-adresse)",
+          "port": "TCP/IP portnummer"
+        },
+        "title": "Kople til nettverkseining"
+      },
+      "serial_connection": {
+        "data": {
+          "baudrate": "Baudrate, for eksempel 2400, 9600 eller 115200",
+          "bytesize": "Antal databits",
+          "dsrdtr": "Aktiver hardware (DSR/DTR) flytkontroll",
+          "parity": "Paritetsjekk",
+          "port": "Serieport",
+          "rtscts": "Aktiver hardware (RTS/CTS) flytkontroll",
+          "stopbits": "Antal stoppbits",
+          "xonxoff": "Aktiver software flytkontroll"
+        },
+        "title": "Kople til serieport"
+      },
+      "user": {
+        "data": {
+          "type": "Tilkoplingstype"
+        },
+        "title": "Velg tilkoplingstype"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "scale_factor": "Skaleringsfaktor for straumtrekk, effekt og energi. Normalt sett til 1."
+        }
+      }
+    }
+  }
+}
