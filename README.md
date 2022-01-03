@@ -12,7 +12,7 @@
 
 Home Assistant integrasjon for Aidon, Kaifa and Kamstrum AMS-strømmålere tilkoblet via HAN-porten. Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype).
 
-Integrasjonen støtter å lese fra [M-BUS](https://en.wikipedia.org/wiki/Meter-Bus) (også kalt Meter-Bus) enheter tilkoblet via serieport (vanlig for USB-enhenter) eller nettverk (TCP-IP addresse/port). Sistnevnte er ofte aktuelt om Home Assistant kører på en annen maskin en den M-BUS er tilkoblet.
+Integrasjonen støtter å lese fra [M-BUS](https://en.wikipedia.org/wiki/Meter-Bus) (også kalt Meter-Bus) enheter tilkoblet via serieport (vanlig for USB-enhenter) eller nettverk (TCP-IP addresse/port). Sistnevnte er ofte aktuelt om Home Assistant kører på en annen maskin en den M-BUS er tilkoblet. Flere målere kan være tilknyttet samme Home Assistant installasjon.
 
 ![image](https://user-images.githubusercontent.com/12134766/145044580-4c072af7-2bdf-4b6c-894c-38d5789ba9be.png)
 
