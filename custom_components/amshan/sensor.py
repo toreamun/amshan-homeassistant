@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from asyncio import Queue
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from math import floor
 from typing import Callable, Iterable, cast
@@ -24,13 +24,15 @@ from homeassistant.const import (
     ENERGY_KILO_WATT_HOUR,
     POWER_WATT,
 )
-from homeassistant.core import callback
+from homeassistant.core import State, callback
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.util import dt as dt_util
 
 from . import MeterInfo
 from .const import (
@@ -61,6 +63,9 @@ class AmsHanSensorEntityDescription(SensorEntityDescription):
 
     use_configured_scaling: bool = False
     """Use custom configured scaling."""
+
+    is_hour_sensor: bool = False
+    """Is the sensor updated only each hour."""
 
 
 SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
@@ -198,6 +203,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             scale=0.001,
             decimals=2,
             use_configured_scaling=True,
+            is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
@@ -209,6 +215,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             scale=0.001,
             decimals=2,
             use_configured_scaling=True,
+            is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
@@ -219,6 +226,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             scale=0.001,
             decimals=2,
             use_configured_scaling=True,
+            is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
@@ -229,6 +237,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             scale=0.001,
             decimals=2,
             use_configured_scaling=True,
+            is_hour_sensor=True,
         ),
     ]
 }
@@ -375,6 +384,68 @@ class AmsHanEntity(SensorEntity):
         )
 
 
+class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
+    """Representation of a AmsHan sensor each hour."""
+
+    def __init__(
+        self,
+        entity_description: AmsHanSensorEntityDescription,
+        measure_data: dict[str, str | int | float | datetime],
+        new_measure_signal_name: str,
+        scale_factor: float,
+        meter_info: MeterInfo,
+    ) -> None:
+        """Initialize AmsHanHourlyEntity class."""
+        super().__init__(
+            entity_description,
+            measure_data,
+            new_measure_signal_name,
+            scale_factor,
+            meter_info,
+        )
+        self._restored_last_state: State | None = None
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        self._restored_last_state = await self.async_get_last_state()
+        await super().async_added_to_hass()
+
+    @property
+    def native_value(self) -> None | str | int | float:
+        """Return the native value from current measure or cache if from current hour."""
+        measured_value = super().native_value
+        if measured_value:
+            self._restored_last_state = None  # no need for restored state anymore
+            return measured_value
+
+        if self._restored_last_state:
+            if self._is_restored_state_from_current_hour():
+                _LOGGER.debug(
+                    "Use restored state from %s for sensor %s",
+                    self._restored_last_state.last_updated,
+                    self.unique_id,
+                )
+                return self._restored_last_state.state
+
+            _LOGGER.debug(
+                "Restored state from %s for sensor %s is too old to be used",
+                self._restored_last_state.last_updated,
+                self.unique_id,
+            )
+
+            self._restored_last_state = None
+
+        return None
+
+    def _is_restored_state_from_current_hour(self):
+        now = dt_util.utcnow()
+        time_since_update = now - self._restored_last_state.last_updated
+        return (
+            now.hour == self._restored_last_state.last_updated.hour
+            and time_since_update < timedelta(hours=1)
+        )
+
+
 class MeterMeasureProcessor:
     """Process meter measures from queue and setup/update entities."""
 
@@ -451,18 +522,12 @@ class MeterMeasureProcessor:
             if missing_measures:
 
                 # Add hourly sensors before measurement is available to avoid long delay
-                if (
-                    obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR
-                    not in self._known_measures
-                ):
-                    missing_measures.update(
-                        [
-                            obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
-                            obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
-                            obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
-                            obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
-                        ]
-                    )
+                hour_sensors = {
+                    s.key for s in SENSOR_TYPES.values() if s.is_hour_sensor
+                }
+                missing_hour_sensors = hour_sensors - self._known_measures
+                if missing_hour_sensors:
+                    missing_measures.update(missing_hour_sensors)
 
                 new_enitities = self._create_entities(
                     missing_measures, str(meter_id), measure_data
@@ -495,12 +560,23 @@ class MeterMeasureProcessor:
                 if not self._meter_info:
                     self._meter_info = MeterInfo.from_measure_data(measure_data)
 
-                entity = AmsHanEntity(
-                    SENSOR_TYPES[measure_id],
-                    measure_data,
-                    self._new_measure_signal_name,
-                    self._scale_factor,
-                    self._meter_info,
+                entity_description = SENSOR_TYPES[measure_id]
+                entity = (
+                    AmsHanHourlyEntity(
+                        entity_description,
+                        measure_data,
+                        self._new_measure_signal_name,
+                        self._scale_factor,
+                        self._meter_info,
+                    )
+                    if entity_description.is_hour_sensor
+                    else AmsHanEntity(
+                        entity_description,
+                        measure_data,
+                        self._new_measure_signal_name,
+                        self._scale_factor,
+                        self._meter_info,
+                    )
                 )
                 new_enitities.append(entity)
             else:
