@@ -414,7 +414,7 @@ class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
     def native_value(self) -> None | str | int | float:
         """Return the native value from current measure or cache if from current hour."""
         measured_value = super().native_value
-        if measured_value:
+        if measured_value is not None:
             self._restored_last_state = None  # no need for restored state anymore
             return measured_value
 
