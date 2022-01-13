@@ -23,6 +23,7 @@ from homeassistant.const import (
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
     POWER_WATT,
+    STATE_UNKNOWN,
 )
 from homeassistant.core import State, callback
 from homeassistant.helpers.dispatcher import (
@@ -408,6 +409,17 @@ class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
         self._restored_last_state = await self.async_get_last_state()
+        if (
+            self._restored_last_state
+            and self._restored_last_state.state == STATE_UNKNOWN
+        ):
+            _LOGGER.debug(
+                "Restored state from %s for sensor %s is unknown. No need to keep.",
+                self._restored_last_state.last_updated,
+                self.unique_id,
+            )
+            self._restored_last_state = None
+
         await super().async_added_to_hass()
 
     @property
