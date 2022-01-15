@@ -491,9 +491,8 @@ class MeterMeasureProcessor:
 
                 _LOGGER.debug("Received meter measures: %s", measure_data)
                 self._update_entities(measure_data)
-            except Exception as ex:
-                _LOGGER.exception("Error processing meter readings: %s", ex)
-                raise
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Error processing meter readings")
 
     async def _async_decode_next_valid_frame(
         self,
@@ -504,12 +503,22 @@ class MeterMeasureProcessor:
                 # stop signal (empty bytes) reveived
                 return dict()
 
-            decoded_measure = self._decoder.decode_frame_content(measure_frame_content)
-            if decoded_measure:
-                _LOGGER.debug("Decoded measure frame: %s", decoded_measure)
-                return decoded_measure
+            try:
+                decoded_measure = self._decoder.decode_frame_content(
+                    measure_frame_content
+                )
+                if decoded_measure:
+                    _LOGGER.debug("Decoded meter frame: %s", decoded_measure)
+                    return decoded_measure
 
-            _LOGGER.warning("Could not decode frame: %s", measure_frame_content.hex())
+                _LOGGER.warning(
+                    "Could not decode meter frame: %s", measure_frame_content.hex()
+                )
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception(
+                    "Exception when decoding meter frame: %s",
+                    measure_frame_content.hex(),
+                )
 
     def _update_entities(
         self, measure_data: dict[str, str | int | float | datetime]
