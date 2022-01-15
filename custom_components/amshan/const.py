@@ -7,6 +7,7 @@ DOMAIN = "amshan"
 
 ENTRY_DATA_MEASURE_QUEUE = "measure_queue"
 ENTRY_DATA_MEASURE_CONNECTION = "connection"
+ENTRY_DATA_MEASURE_MQTT_SUBSCRIPTIONS = "mqtt_subscriptions"
 ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE = "update_listener_unsubscribe"
 
 ICON_POWER_IMPORT = "mdi:flash"
@@ -43,5 +44,7 @@ CONF_SERIAL_DSRDTR = "dsrdtr"
 
 CONF_TCP_HOST = hassconst.CONF_HOST
 CONF_TCP_PORT = hassconst.CONF_PORT
+
+CONF_MQTT_TOPICS = "mqtt_topics"
 
 CONF_OPTIONS_SCALE_FACTOR = "scale_factor"

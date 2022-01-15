@@ -5,7 +5,7 @@ from asyncio import AbstractEventLoop, BaseProtocol, Queue
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Mapping, cast
+from typing import Any, List, Mapping, cast
 
 from amshan import obis_map
 from amshan.meter_connection import (
@@ -14,6 +14,9 @@ from amshan.meter_connection import (
     MeterTransportProtocol,
     SmartMeterFrameContentProtocol,
 )
+from black import Callable
+from homeassistant.components import mqtt
+from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import callback
@@ -23,6 +26,7 @@ import serial_asyncio
 import voluptuous as vol
 
 from .const import (
+    CONF_MQTT_TOPICS,
     CONF_SERIAL_BAUDRATE,
     CONF_SERIAL_BYTESIZE,
     CONF_SERIAL_DSRDTR,
@@ -35,6 +39,7 @@ from .const import (
     CONF_TCP_PORT,
     DOMAIN,
     ENTRY_DATA_MEASURE_CONNECTION,
+    ENTRY_DATA_MEASURE_MQTT_SUBSCRIPTIONS,
     ENTRY_DATA_MEASURE_QUEUE,
     ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE,
     HOSTNAME_IP4_IP6_REGEX,
@@ -62,12 +67,23 @@ TCP_SCHEMA_DICT = {
     vol.Required(CONF_TCP_PORT): vol.Range(0, 65535),
 }
 
+HASS_MSMQ_SCHEMA_DICT = {
+    vol.Required(CONF_MQTT_TOPICS): cv.string,
+}
+
 SERIAL_SCHEMA = vol.Schema(SERIAL_SCHEMA_DICT)
 TCP_SCHEMA = vol.Schema(TCP_SCHEMA_DICT)
+HASS_MSMQ_SCHEMA = vol.Schema(HASS_MSMQ_SCHEMA_DICT)
+
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
-            vol.Any(SERIAL_SCHEMA, TCP_SCHEMA, msg="Requires TCP or serial settings.")
+            vol.Any(
+                SERIAL_SCHEMA,
+                TCP_SCHEMA,
+                HASS_MSMQ_SCHEMA,
+                msg="Requires TCP, serial, or MQTT settings.",
+            )
         )
     },
     extra=vol.ALLOW_EXTRA,
@@ -90,22 +106,33 @@ async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
     measure_queue: Queue[bytes] = Queue(loop=hass.loop)
-    connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
+
+    connection = None
+    mqtt_unsubscribe = None
+
+    if CONF_MQTT_TOPICS in entry.data:
+        mqtt_unsubscribe = await async_setup_meter_mqtt_subscriptions(
+            hass, entry.data, measure_queue
+        )
+    else:
+        connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
 
     hass.data[DOMAIN][entry.entry_id] = {
         ENTRY_DATA_MEASURE_CONNECTION: connection,
+        ENTRY_DATA_MEASURE_MQTT_SUBSCRIPTIONS: mqtt_unsubscribe,
         ENTRY_DATA_MEASURE_QUEUE: measure_queue,
     }
 
     @callback
-    async def on_hass_stop_close_connection(_: EventType) -> None:
-        await async_close(measure_queue, connection)
+    async def on_hass_stop(_: EventType) -> None:
+        await async_close(measure_queue, connection, mqtt_unsubscribe)
 
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop_close_connection)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop)
 
-    # Don't use hass.async_create_task, but schedule directly on the loop,
-    # to avoid blocking startup.
-    hass.loop.create_task(connection.connect_loop())
+    if connection:
+        # Don't use hass.async_create_task, but schedule directly on the loop,
+        # to avoid blocking startup.
+        hass.loop.create_task(connection.connect_loop())
 
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, PLATFORM_TYPE)
@@ -133,6 +160,7 @@ async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> boo
         await async_close(
             resources[ENTRY_DATA_MEASURE_QUEUE],
             resources[ENTRY_DATA_MEASURE_CONNECTION],
+            resources[ENTRY_DATA_MEASURE_MQTT_SUBSCRIPTIONS],
         )
         unsubscribe_update_listener()
 
@@ -147,10 +175,17 @@ async def async_config_entry_changed(hass: HomeAssistantType, entry: ConfigEntry
 
 
 async def async_close(
-    measure_queue: "Queue[bytes]", connection: ConnectionManager
+    measure_queue: "Queue[bytes]",
+    connection: ConnectionManager | None,
+    mqtt_unsubscribe: Callable | None,
 ) -> None:
     """Close meter connection and measure processor."""
-    connection.close()
+    _LOGGER.info("Close down integration.")
+    if connection:
+        connection.close()
+
+    if mqtt_unsubscribe:
+        mqtt_unsubscribe()
 
     # signal processor to exit processing loop by sending empty bytes on the queue
     await measure_queue.put(bytes())
@@ -202,6 +237,36 @@ def get_connection_factory(
     )
 
     return connection_factory
+
+
+async def async_setup_meter_mqtt_subscriptions(
+    hass: HomeAssistantType, config: Mapping[str, Any], measure_queue: "Queue[bytes]"
+) -> Callable:
+    """Setup MQTT topic subscriptions."""
+
+    @callback
+    def message_received(mqtt_message: ReceiveMessage):
+        """Handle new MQTT messages."""
+        _LOGGER.debug(
+            "Received message from MQTT topic %s: %s",
+            mqtt_message.topic,
+            mqtt_message.payload.hex(),
+        )
+        measure_queue.put_nowait(mqtt_message.payload)
+
+    unsubscibers: List[Callable] = []
+    topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
+    for topic in topics:
+        unsubscibers.append(
+            await mqtt.async_subscribe(hass, topic, message_received, 1, encoding=None)
+        )
+
+    def unsubscribe_mqtt():
+        _LOGGER.debug("Unsubscribe %d MQTT topic(s)", len(unsubscibers))
+        for unsubscribe in unsubscibers:
+            unsubscribe()
+
+    return unsubscribe_mqtt
 
 
 @dataclass

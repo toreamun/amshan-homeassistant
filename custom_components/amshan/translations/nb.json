@@ -11,7 +11,8 @@
       "serial_exception_errno_2": "Kunne ikke finne serieport",
       "unknown": "Ukjent feil",
       "voluptuous_host": "Må være et gyldig DNS-navn eller en IP-adresse",
-      "voluptuous_port": "Må være et gyldig portnummer (mellom 0 og 65535)"
+      "voluptuous_port": "Må være et gyldig portnummer (mellom 0 og 65535)",
+      "mqtt_not_available": "Vennligst sjekk at MQTT integrasjonen er installert"
     },
     "step": {
       "network_connection": {
@@ -33,6 +34,12 @@
           "xonxoff": "Aktiver programvareflytkontroll"
         },
         "title": "Koble til serieport"
+      },
+      "hass_mqtt_connection": {
+        "title": "Abonner på MQTT emne(r)",
+        "data": {
+          "mqtt_topics": "MQTT emne(r) separert med komma"
+        }
       },
       "user": {
         "data": {

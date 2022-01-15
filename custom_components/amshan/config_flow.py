@@ -1,7 +1,7 @@
 """Config flow for AMS HAN meter integration."""
 from __future__ import annotations
 
-from asyncio import AbstractEventLoop, Queue, wait_for
+from asyncio import AbstractEventLoop, CancelledError, Queue
 from enum import Enum
 import logging
 import socket
@@ -9,6 +9,10 @@ from typing import Any, cast
 
 from amshan import obis_map
 from amshan.autodecoder import AutoDecoder
+from async_timeout import timeout
+from homeassistant.components import mqtt
+from homeassistant.components.mqtt import DOMAIN as MQTT_DOMAIN, valid_subscribe_topic
+from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.config_entries import (
     CONN_CLASS_LOCAL_PUSH,
     ConfigEntry,
@@ -22,6 +26,15 @@ from serial import SerialException
 import voluptuous as vol
 
 from . import (
+    HASS_MSMQ_SCHEMA,
+    SERIAL_SCHEMA,
+    TCP_SCHEMA,
+    MeterInfo,
+    get_connection_factory,
+)
+from .const import (
+    CONF_MQTT_TOPICS,
+    CONF_OPTIONS_SCALE_FACTOR,
     CONF_SERIAL_BAUDRATE,
     CONF_SERIAL_BYTESIZE,
     CONF_SERIAL_DSRDTR,
@@ -32,17 +45,13 @@ from . import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
-    SERIAL_SCHEMA,
-    TCP_SCHEMA,
-    MeterInfo,
-    get_connection_factory,
 )
-from .const import CONF_OPTIONS_SCALE_FACTOR, DOMAIN  # pylint:disable=unused-import
+from .const import DOMAIN  # pylint:disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA_SELECT_DEVICE_TYPE = vol.Schema(
-    {vol.Required("type"): vol.In(["serial", "network"])}
+    {vol.Required("type"): vol.In(["serial", "network", "MQTT"])}
 )
 
 DATA_SCHEMA_NETWORK_DATA = vol.Schema(
@@ -62,8 +71,14 @@ DATA_SCHEMA_SERIAL_DATA = vol.Schema(
     }
 )
 
+DATA_SCHEMA_MQTT_DATA = vol.Schema(
+    {
+        vol.Required(CONF_MQTT_TOPICS): str,
+    }
+)
+
 # max number of frames to search for needed meter information
-# Some meters sends 3 frames with minimal data in between larger. Skip them.
+# Some meters sends 3 frames containing minimal of data between larger frames. Skip them.
 # Some frames may be abortet correctly. Add some for that.
 # A max count of 4 should be the normal situation, but a little more is more robust.
 MAX_FRAME_SEARCH_COUNT = 6
@@ -81,6 +96,8 @@ VALIDATION_ERROR_HOST_CHECK = "host_check"
 VALIDATION_ERROR_VOLUPTUOUS_BASE = "voluptuous_"
 VALIDATION_ERROR_SERIAL_EXCEPTION_GENERAL = "serial_exception_general"
 VALIDATION_ERROR_SERIAL_EXCEPTION_ERRNO_2 = "serial_exception_errno_2"
+VALIDATION_ERROR_MQTT_NOT_AVAILAVLE = "mqtt_not_available"
+VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC = "invalid_subscribe_topic"
 
 
 class ConnectionType(Enum):
@@ -88,6 +105,7 @@ class ConnectionType(Enum):
 
     SERIAL = 1
     NETWORK = 2
+    MQTT = 3
 
 
 class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -110,6 +128,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Handle the initial step."""
+        errors = {}
         if user_input is not None:
             connection_type = self._validator.validate_connection_type_input(user_input)
 
@@ -119,8 +138,13 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
             if connection_type == ConnectionType.SERIAL:
                 return await self.async_step_serial_connection()
 
+            if connection_type == ConnectionType.MQTT:
+                if self._is_mqtt_available():
+                    return await self.async_step_hass_mqtt_connection()
+                errors[VALIDATION_ERROR_BASE] = VALIDATION_ERROR_MQTT_NOT_AVAILAVLE
+
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA_SELECT_DEVICE_TYPE, errors={}
+            step_id="user", data_schema=DATA_SCHEMA_SELECT_DEVICE_TYPE, errors=errors
         )
 
     async def async_step_serial_connection(
@@ -129,7 +153,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
-                cast(HomeAssistantType, self.hass).loop,
+                cast(HomeAssistantType, self.hass),
                 ConnectionType.SERIAL,
                 user_input,
             )
@@ -156,7 +180,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the network connection step."""
         if user_input:
             meter_info = await self._validator.async_validate_connection_input(
-                cast(HomeAssistantType, self.hass).loop,
+                cast(HomeAssistantType, self.hass),
                 ConnectionType.NETWORK,
                 user_input,
             )
@@ -173,6 +197,33 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=DATA_SCHEMA_NETWORK_DATA,
             errors=self._validator.errors,
         )
+
+    async def async_step_hass_mqtt_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Handle MQTT step."""
+        if user_input:
+            meter_info = await self._validator.async_validate_connection_input(
+                cast(HomeAssistantType, self.hass),
+                ConnectionType.MQTT,
+                user_input,
+            )
+
+            if not self._validator.errors and meter_info:
+                await self.async_set_unique_id(meter_info.unique_id)
+                self._abort_if_unique_id_configured()
+
+                title = f"{meter_info.manufacturer} {meter_info.type} connected to MQTT"
+                return self.async_create_entry(title=title, data=user_input)
+
+        return self.async_show_form(
+            step_id="hass_mqtt_connection",
+            data_schema=DATA_SCHEMA_MQTT_DATA,
+            errors=self._validator.errors,
+        )
+
+    def _is_mqtt_available(self) -> bool:
+        return MQTT_DOMAIN in self.hass.config.components
 
 
 class ConfigFlowValidation:
@@ -195,17 +246,33 @@ class ConfigFlowValidation:
         decoder = AutoDecoder()
 
         for _ in range(MAX_FRAME_SEARCH_COUNT):
-            measure = await wait_for(measure_queue.get(), MAX_FRAME_WAIT_TIME)
-            decoded_measure = decoder.decode_frame_content(measure)
-            if decoded_measure:
-                if (
-                    obis_map.NEK_HAN_FIELD_METER_ID in decoded_measure
-                    and obis_map.NEK_HAN_FIELD_METER_MANUFACTURER
-                ):
-                    return MeterInfo.from_measure_data(decoded_measure)
+            measure = await self._async_try_get_frame(measure_queue)
+            if measure is not None:
+                decoded_measure = decoder.decode_frame_content(measure)
+                if decoded_measure:
+                    if (
+                        obis_map.NEK_HAN_FIELD_METER_ID in decoded_measure
+                        and obis_map.NEK_HAN_FIELD_METER_MANUFACTURER in decoded_measure
+                    ):
+                        return MeterInfo.from_measure_data(decoded_measure)
+
+                    _LOGGER.debug("Decoded measure data is missing required info.")
+
         raise TimeoutError()
 
-    async def _async_validate_connection(
+    async def _async_try_get_frame(
+        self, measure_queue: "Queue[bytes]"
+    ) -> MeterInfo | None:
+        async with timeout(MAX_FRAME_WAIT_TIME):
+            try:
+                return await measure_queue.get()
+            except (TimeoutError, CancelledError):
+                _LOGGER.debug(
+                    "Timout waiting %d seconds for meter measure.", MAX_FRAME_WAIT_TIME
+                )
+                return None
+
+    async def _async_validate_device_connection(
         self, loop: AbstractEventLoop, user_input: dict[str, Any]
     ) -> MeterInfo | None:
         """Try to connect and get meter information to validate connection data."""
@@ -247,6 +314,39 @@ class ConfigFlowValidation:
             if transport:
                 transport.close()
 
+    async def _async_validate_mqtt_connection(
+        self, hass: HomeAssistantType, user_input: dict[str, Any]
+    ) -> MeterInfo | None:
+        measure_queue: Queue[bytes] = Queue()
+
+        @callback
+        def message_received(mqtt_message: ReceiveMessage):
+            """Handle new MQTT messages."""
+            _LOGGER.debug(
+                "Received message from MQTT topic %s: %s",
+                mqtt_message.topic,
+                mqtt_message.payload.hex(),
+            )
+            measure_queue.put_nowait(mqtt_message.payload)
+
+        unsubscibers = []
+        topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
+        for topic in topics:
+            unsubscibers.append(
+                await mqtt.async_subscribe(
+                    hass, topic, message_received, 1, encoding=None
+                )
+            )
+
+        try:
+            return await self._async_get_meter_info(measure_queue)
+        except TimeoutError:
+            self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_FRAMES)
+            return None
+        finally:
+            for ubsubscribe in unsubscibers:
+                ubsubscribe()
+
     async def _async_validate_host_address(
         self, loop: AbstractEventLoop, user_input: dict[str, Any]
     ) -> None:
@@ -262,11 +362,25 @@ class ConfigFlowValidation:
         except OSError:
             self.errors[CONF_SERIAL_PORT] = VALIDATION_ERROR_HOST_CHECK
 
+    def _validate_topics(self, user_input: dict[str, Any]) -> None:
+        topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
+        for topic in topics:
+            try:
+                valid_subscribe_topic(topic)
+            except vol.Invalid:
+                self.errors[
+                    CONF_MQTT_TOPICS
+                ] = VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+
     def _validate_schema(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
     ) -> None:
         schema = (
-            SERIAL_SCHEMA if connection_type == ConnectionType.SERIAL else TCP_SCHEMA
+            SERIAL_SCHEMA
+            if connection_type == ConnectionType.SERIAL
+            else TCP_SCHEMA
+            if connection_type == ConnectionType.NETWORK
+            else HASS_MSMQ_SCHEMA
         )
         try:
             schema(user_input)
@@ -284,7 +398,7 @@ class ConfigFlowValidation:
 
     async def async_validate_connection_input(
         self,
-        loop: AbstractEventLoop,
+        hass: HomeAssistantType,
         connection_type: ConnectionType,
         user_input: dict[str, Any],
     ) -> MeterInfo | None:
@@ -294,10 +408,19 @@ class ConfigFlowValidation:
         self._validate_schema(connection_type, user_input)
 
         if not self.errors and connection_type == ConnectionType.NETWORK:
-            await self._async_validate_host_address(loop, user_input)
+            await self._async_validate_host_address(hass.loop, user_input)
 
-        if not self.errors:
-            return await self._async_validate_connection(loop, user_input)
+        if not self.errors and connection_type == ConnectionType.MQTT:
+            self._validate_topics(user_input)
+
+        if not self.errors and connection_type in (
+            ConnectionType.NETWORK,
+            ConnectionType.SERIAL,
+        ):
+            return await self._async_validate_device_connection(hass.loop, user_input)
+
+        if not self.errors and connection_type == ConnectionType.MQTT:
+            return await self._async_validate_mqtt_connection(hass, user_input)
 
         return None
 

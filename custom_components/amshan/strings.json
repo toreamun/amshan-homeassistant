@@ -26,6 +26,12 @@
           "rtscts": "Enable hardware (RTS/CTS) flow control",
           "dsrdtr": "Enable hardware (DSR/DTR) flow control"
         }
+      },
+      "hass_mqtt_connection": {
+        "title": "Subscribe to MQTT topic(s)",
+        "data": {
+          "mqtt_topics": "MQTT topic(s) separated by comma"
+        }
       }
     },
     "error": {
@@ -36,7 +42,8 @@
       "cannot_connect": "Failed to connect, please try again",
       "serial_exception_general": "Could not open serial port. See log for details",
       "serial_exception_errno_2": "Serial device not found",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "mqtt_not_available": "MQTT is not available. Please make sure MQTT integration is installed"
     },
     "abort": {
       "already_configured": "Device is already configured"
