@@ -31,6 +31,7 @@ from . import (
     TCP_SCHEMA,
     MeterInfo,
     get_connection_factory,
+    get_frame_information,
 )
 from .const import (
     CONF_MQTT_TOPICS,
@@ -322,12 +323,9 @@ class ConfigFlowValidation:
         @callback
         def message_received(mqtt_message: ReceiveMessage):
             """Handle new MQTT messages."""
-            _LOGGER.debug(
-                "Received message from MQTT topic %s: %s",
-                mqtt_message.topic,
-                mqtt_message.payload.hex(),
-            )
-            measure_queue.put_nowait(mqtt_message.payload)
+            information = get_frame_information(mqtt_message)
+            if information:
+                measure_queue.put_nowait(information)
 
         unsubscibers = []
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}

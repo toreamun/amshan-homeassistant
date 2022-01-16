@@ -8,6 +8,7 @@ import logging
 from typing import Any, Callable, List, Mapping, cast
 
 from amshan import obis_map
+from amshan.hdlc import HdlcFrameReader
 from amshan.meter_connection import (
     AsyncConnectionFactory,
     ConnectionManager,
@@ -238,20 +239,64 @@ def get_connection_factory(
     return connection_factory
 
 
+def get_frame_information(mqtt_message: ReceiveMessage) -> bytes | None:
+    """Get frame information part from mqtt message."""
+    # Try first to read as HDLC-frame. Reader expects flag sequence in start and end.
+    frame_reader = HdlcFrameReader(False)
+    flag_seqeuence = HdlcFrameReader.FLAG_SEQUENCE.to_bytes(1, byteorder="big")
+    if not mqtt_message.payload.startswith(flag_seqeuence):
+        frame_reader.read(flag_seqeuence)
+
+    frames = frame_reader.read(mqtt_message.payload)
+    if len(frames) == 0:
+        frames = frame_reader.read(flag_seqeuence)
+
+    if len(frames) > 0:
+        frame = frames[0]
+
+        if frame.is_good_ffc and frame.is_expected_length:
+            if frame.information is not None:
+                _LOGGER.debug(
+                    "Got valid frame of expected length with correct checksum from topic %s: %s",
+                    mqtt_message.topic,
+                    mqtt_message.payload.hex(),
+                )
+                return frame.information
+            else:
+                _LOGGER.debug(
+                    "Got empty frame of expected length with correct checksum from topic %s: %s",
+                    mqtt_message.topic,
+                    mqtt_message.payload.hex(),
+                )
+
+        _LOGGER.debug(
+            "Got invalid frame (ffc is %s and expected length is %s) from topic %s: %s",
+            frame.is_good_ffc,
+            frame.is_expected_length,
+            mqtt_message.topic,
+            mqtt_message.payload.hex(),
+        )
+        return None
+
+    _LOGGER.debug(
+        "Got payload without HDLC framing from topic %s: %s",
+        mqtt_message.topic,
+        mqtt_message.payload.hex(),
+    )
+    return mqtt_message.payload
+
+
 async def async_setup_meter_mqtt_subscriptions(
     hass: HomeAssistantType, config: Mapping[str, Any], measure_queue: "Queue[bytes]"
 ) -> Callable:
-    """Setup MQTT topic subscriptions."""
+    """Set up MQTT topic subscriptions."""
 
     @callback
     def message_received(mqtt_message: ReceiveMessage):
         """Handle new MQTT messages."""
-        _LOGGER.debug(
-            "Received message from MQTT topic %s: %s",
-            mqtt_message.topic,
-            mqtt_message.payload.hex(),
-        )
-        measure_queue.put_nowait(mqtt_message.payload)
+        information = get_frame_information(mqtt_message)
+        if information:
+            measure_queue.put_nowait(information)
 
     unsubscibers: List[Callable] = []
     topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
