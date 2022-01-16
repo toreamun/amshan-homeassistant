@@ -5,7 +5,7 @@ from asyncio import AbstractEventLoop, BaseProtocol, Queue
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, List, Mapping, cast
+from typing import Any, Callable, List, Mapping, cast
 
 from amshan import obis_map
 from amshan.meter_connection import (
@@ -14,7 +14,6 @@ from amshan.meter_connection import (
     MeterTransportProtocol,
     SmartMeterFrameContentProtocol,
 )
-from black import Callable
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.config_entries import ConfigEntry
