@@ -1,7 +1,7 @@
 {
   "domain": "amshan",
   "name": "AMS HAN meter",
-  "version": "2022.1.5",
+  "version": "2022.1.6",
   "config_flow": true,
   "documentation": "https://github.com/toreamun/amshan-homeassistant",
   "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
@@ -9,7 +9,7 @@
     "@toreamun"
   ],
   "requirements": [
-    "amshan[serial]==1.0.0"
+    "amshan[serial]==1.0.1"
   ],
   "after_dependencies": [
     "mqtt"
