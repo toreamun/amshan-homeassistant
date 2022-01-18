@@ -17,6 +17,9 @@ Flere målere kan være tilknyttet samme Home Assistant installasjon.
 
 ![image](https://user-images.githubusercontent.com/12134766/145044580-4c072af7-2bdf-4b6c-894c-38d5789ba9be.png)
 
+![image](https://user-images.githubusercontent.com/12134766/150021268-28f01386-0583-4f76-9b78-b35882d2019e.png)
+
+
 ## Benytte Tibber Pulse
 [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) publiserer normalt meldinger fra målerens datastrøm til en MQTT-server i skyen. Man kan sette opp Tibber Pulse til å publisere til et topic på en lokal MQTT-server (f.eks Home Assistant Mosquitto broker Add-On), og sette denne integrasjonen opp til å lytte på disse meldingene. Merk at man da ikke får målingene i Tibber Appen, ettersom måligene ikke lenger sendes til Tibber sin MQTT-server. [ElWiz har en veiledning](https://github.com/iotux/ElWiz#oppsett-av-pulse) til å sette opp MQTT på Tibber Pulse.
 
