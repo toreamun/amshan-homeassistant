@@ -1,3 +1,5 @@
+<img src="https://github.com/home-assistant/brands/blob/master/custom_integrations/amshan/icon.png" width="128" alt="logo">
+
 [![GitHub Release](https://img.shields.io/github/release/toreamun/amshan-homeassistant?style=for-the-badge)](https://github.com/toreamun/amshan-homeassistant/releases)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/toreamun/amshan-homeassistant.svg?logo=lgtm&logoWidth=18&style=for-the-badge)](https://lgtm.com/projects/g/toreamun/amshan-homeassistant/context:python)
 [![License](https://img.shields.io/github/license/toreamun/amshan-homeassistant?style=for-the-badge)](LICENSE)
@@ -7,6 +9,8 @@
 [![buy me a coffee](https://img.shields.io/badge/If%20you%20like%20it-Buy%20me%20a%20coffee-orange.svg?style=for-the-badge)](https://www.buymeacoffee.com/toreamun)
 
 [English](README.en.md)
+
+
 
 # AMS HAN Home Assistant integrasjon
 **Home Assistant integrasjon for Aidon, Kaifa and Kamstrum AMS-strømmålere. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.**
