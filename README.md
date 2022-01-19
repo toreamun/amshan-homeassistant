@@ -33,9 +33,10 @@ Integrasjonen støtter streaming fra [M-BUS](https://en.wikipedia.org/wiki/Meter
 
 Du trenger å ha en [M-BUS](https://en.wikipedia.org/wiki/Meter-Bus) slave enhet tilkoblet HAN (Home Area Network) porten på din måler. HAN-porten har en RJ45 kontakt, hvor kun pinn 1 og 2 er benyttet. Du må koble pinn 1 og 2 til de to koblingspunktene på M-BUS-slaveenheten, som så kobles til en datamaskin. De fleste USB-enheter blir da en serieport på datamaskinen. Du kan benytte programvare (f.eks. `ser2net` eller `socat`) for å sende data over TCP/IP hvis Home Assistant kjører på en annen datamaskin.
 
-Denne integrasjonen har blitt testet med flere ulike enkle M-BUS USB-enheter solgt på e-bay. Søk etter MBUS USB slave.
-
 ![image](https://user-images.githubusercontent.com/12134766/146074371-e3e4468a-7f5c-4ed6-8496-073666c1b0de.png)
+
+### Kjøpe MBUS USB slave
+Denne integrasjonen har blitt testet med flere ulike enkle M-BUS USB-enheter solgt på [eBay](https://www.ebay.com/sch/i.html?_nkw=mbus+usb+slave) og [AliExpress](https://www.aliexpress.com/premium/mbus-usb-slave.html). Søk etter MBUS USB slave. **Det er rapportert om problemer med en type som ser ut som en svart boks med ledning.** Ellers ser det meste ut til å fungere. Rapporter gjerne dine erfaringer.
 
 
 ## Home Assistant oppsett
