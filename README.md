@@ -21,7 +21,7 @@ Flere målere kan være tilknyttet samme Home Assistant installasjon.
 
 ![image](https://user-images.githubusercontent.com/12134766/150297088-535246b1-bd95-406c-8f52-6007a6220e6d.png)
 
-Timesmålingene for import og eksport (aktuelt hvis du produserer strøm) kan kobles til Home Assistant Energy (Configuration -> Energy):
+Timesmålingene for import og eksport (aktuelt hvis du produserer strøm) kan kobles til [Home Assistant Energy](https://www.home-assistant.io/blog/2021/08/04/home-energy-management/):
 
 ![image](https://user-images.githubusercontent.com/12134766/150021268-28f01386-0583-4f76-9b78-b35882d2019e.png)
 
