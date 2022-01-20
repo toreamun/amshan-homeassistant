@@ -108,6 +108,9 @@ Når man benytter en USB enhet på Linux er det ofte lurt å benytte device-by-i
 #### Innstillinger
 Det er mulig å benytte en skaleringsfaktor for strøm-, effekt- og energimålingene. Noen få målere er ikke tilkoblet direkte til strømnettet, men via en strømomformer med en reduksjonsfaktor som halverer målingene. I det tilfellet kan man benytte skaleringsfaktoren til å få riktige verdier.
 
+### Home Assistant Energy
+Når integrasjonen er lagt til kan man koble timesmålingene til Home Assistant Energy. Dette gjør man i Configuration -> Energy. Sensoren for eksport er selvsagt bare aktuell hvis du produserer strøm. Merk at måleren bare sender de aktuelle målingene hver time, og rett etter at integrasjonen er satt opp og frem til neste hele time vil sensorene ha verdi "unknown".
+
 ## Fjerntilkoblet M-BUS-enhet
 Du kan koble det til en nettverkstilkoblet M-BUS-enhet ved å velge nettverk ved oppsett.
 Hvis enheten din er tilkoblet noe som kjører Linux, er [ser2net](https://github.com/cminyard/ser2net) et godt valg.
