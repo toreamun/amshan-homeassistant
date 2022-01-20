@@ -13,7 +13,7 @@
 
 
 # AMS HAN Home Assistant integrasjon
-**Home Assistant integrasjon for Aidon, Kaifa and Kamstrum AMS-strømmålere. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.**
+**Home Assistant integrasjon for Aidon, Kaifa and Kamstrum AMS-strømmålere. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
 
 Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype).
 
@@ -33,6 +33,10 @@ Sensorene for spenning og forbruk kan man f.eks selv sette opp i Home Assistant 
 [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) publiserer normalt meldinger fra målerens datastrøm til en MQTT-server i skyen. Man kan sette opp Tibber Pulse til å publisere til et topic på en lokal MQTT-server (f.eks Home Assistant Mosquitto broker Add-On), og sette denne integrasjonen opp til å lytte på disse meldingene. Merk at man da ikke får målingene i Tibber Appen, ettersom måligene ikke lenger sendes til Tibber sin MQTT-server. [ElWiz har en veiledning](https://github.com/iotux/ElWiz#oppsett-av-pulse) til å sette opp MQTT på Tibber Pulse.
 
 Hvis du bestemmer deg for å kjøpe en Tibber Pulse for å benytte med denne integrasjonen er det fint om du benytter denne [invitasjonen](https://tibber.com/no/invite/230c1af6) med vevekode `230c1af6`. I skrivende stund gir invitasjonen 500 kr til bruk i nettbutikken hvor du kan kjøpe Tibber Pulse hvis du blir kunde hos dem. Det er selvsagt ingen garanti for at Tibber ikke kommer med firmware endringer som gjør noe med muligheten for å sette opp lokal MQTT.
+
+## Benytte amsleser.no/AmsToMqttBridge
+[AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) som benyttes av [amsleser.no](amsleser.no) har planlagt MQTT støtten som kreves for å fungere med denne integrasjonen i sin release [v2.1](https://github.com/gskjold/AmsToMqttBridge/milestone/22). Leseren fra [amsleser.no](amsleser.no) krever verken batteri eller strømforsyning.
+
 
 ## MQTT uten bruk av Tibber Pulse
 Integrasjonen kan motta binære målermeldinger fra MQTT. Meldingene kan være hele HDLC-frame (både med og uten flag-sequence) slik de sendes fra måler, eller bare selve målerdatane fra innholdet av HDLC-frame.
