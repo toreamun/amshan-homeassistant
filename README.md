@@ -19,7 +19,9 @@ Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/1
 
 Flere målere kan være tilknyttet samme Home Assistant installasjon.
 
-![image](https://user-images.githubusercontent.com/12134766/145044580-4c072af7-2bdf-4b6c-894c-38d5789ba9be.png)
+![image](https://user-images.githubusercontent.com/12134766/150297088-535246b1-bd95-406c-8f52-6007a6220e6d.png)
+
+Timesmålingene for import og eksport (aktuelt hvis du produserer strøm) kan kobles til Home Assistant Energy (Configuration -> Energy):
 
 ![image](https://user-images.githubusercontent.com/12134766/150021268-28f01386-0583-4f76-9b78-b35882d2019e.png)
 
