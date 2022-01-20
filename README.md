@@ -111,6 +111,9 @@ Det er mulig å benytte en skaleringsfaktor for strøm-, effekt- og energimålin
 ### Home Assistant Energy
 Når integrasjonen er lagt til kan man koble timesmålingene til Home Assistant Energy. Dette gjør man i Configuration -> Energy. Sensoren for eksport er selvsagt bare aktuell hvis du produserer strøm. Merk at måleren bare sender de aktuelle målingene hver time, og rett etter at integrasjonen er satt opp og frem til neste hele time vil sensorene ha verdi "unknown".
 
+![image](https://user-images.githubusercontent.com/12134766/150300644-ac0c9916-ab25-47c5-a30a-bcf8b8c19aff.png)
+
+
 ## Fjerntilkoblet M-BUS-enhet
 Du kan koble det til en nettverkstilkoblet M-BUS-enhet ved å velge nettverk ved oppsett.
 Hvis enheten din er tilkoblet noe som kjører Linux, er [ser2net](https://github.com/cminyard/ser2net) et godt valg.
