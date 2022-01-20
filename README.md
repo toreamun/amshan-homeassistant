@@ -25,6 +25,9 @@ Timesmålingene for import og eksport (aktuelt hvis du produserer strøm) kan ko
 
 ![image](https://user-images.githubusercontent.com/12134766/150021268-28f01386-0583-4f76-9b78-b35882d2019e.png)
 
+Sensorene for spenning og forbruk kan man f.eks selv sette opp i Home Assistant som sensor ("speedometer") eller historikk (graf).
+
+![image](https://user-images.githubusercontent.com/12134766/150298075-d21617c5-7e17-44b3-8fc7-196af9f22f08.png)
 
 ## Benytte Tibber Pulse
 [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) publiserer normalt meldinger fra målerens datastrøm til en MQTT-server i skyen. Man kan sette opp Tibber Pulse til å publisere til et topic på en lokal MQTT-server (f.eks Home Assistant Mosquitto broker Add-On), og sette denne integrasjonen opp til å lytte på disse meldingene. Merk at man da ikke får målingene i Tibber Appen, ettersom måligene ikke lenger sendes til Tibber sin MQTT-server. [ElWiz har en veiledning](https://github.com/iotux/ElWiz#oppsett-av-pulse) til å sette opp MQTT på Tibber Pulse.
