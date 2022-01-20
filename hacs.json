@@ -5,6 +5,5 @@
   ],
   "iot_class": "Local Push",
   "homeassistant": "2021.12.0b0",
-  "country": "NO",
   "render_readme": true
 }
