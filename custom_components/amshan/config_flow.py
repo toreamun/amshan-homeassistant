@@ -24,16 +24,8 @@ from homeassistant.helpers.typing import HomeAssistantType
 from serial import SerialException
 import voluptuous as vol
 
-from . import (
-    HASS_MSMQ_SCHEMA,
-    SERIAL_SCHEMA,
-    TCP_SCHEMA,
-    ConnectionType,
-    MeterInfo,
-    get_connection_factory,
-    get_frame_information,
-)
-from .const import (
+from . import ConnectionType, MeterInfo, get_connection_factory, get_frame_information
+from .config import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
@@ -48,6 +40,9 @@ from .const import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
+    HASS_MSMQ_SCHEMA,
+    SERIAL_SCHEMA,
+    TCP_SCHEMA,
 )
 from .const import DOMAIN  # pylint:disable=unused-import
 

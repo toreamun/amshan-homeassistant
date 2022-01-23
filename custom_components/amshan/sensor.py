@@ -36,8 +36,8 @@ from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
 from . import MeterInfo
+from .config import CONF_OPTIONS_SCALE_FACTOR
 from .const import (
-    CONF_OPTIONS_SCALE_FACTOR,
     DOMAIN,
     ENTRY_DATA_MEASURE_QUEUE,
     ICON_COUNTER,

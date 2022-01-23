@@ -1,8 +1,6 @@
 """Constants for the AMS HAN meter integration."""
 from __future__ import annotations
 
-import homeassistant.const as hassconst
-
 DOMAIN = "amshan"
 
 ENTRY_DATA_MEASURE_QUEUE = "measure_queue"
@@ -31,23 +29,3 @@ HOSTNAME_REGEX = (
 HOSTNAME_IP4_IP6_REGEX = (
     "^(" + IPV4_ADR_REGEX + ")|(" + HOSTNAME_REGEX + ")|(" + IPV6_ADR_REGEX + ")$"
 )
-
-# Configuration and options
-CONF_CONNECTION_TYPE = "connection_type"
-CONF_CONNECTION_CONFIG = "connection"
-
-CONF_SERIAL_PORT = hassconst.CONF_PORT
-CONF_SERIAL_BAUDRATE = "baudrate"
-CONF_SERIAL_PARITY = "parity"
-CONF_SERIAL_BYTESIZE = "bytesize"
-CONF_SERIAL_STOPBITS = "stopbits"
-CONF_SERIAL_XONXOFF = "xonxoff"
-CONF_SERIAL_RTSCTS = "rtscts"
-CONF_SERIAL_DSRDTR = "dsrdtr"
-
-CONF_TCP_HOST = hassconst.CONF_HOST
-CONF_TCP_PORT = hassconst.CONF_PORT
-
-CONF_MQTT_TOPICS = "mqtt_topics"
-
-CONF_OPTIONS_SCALE_FACTOR = "scale_factor"
