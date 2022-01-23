@@ -252,8 +252,8 @@ class ConfigFlowValidation:
                 decoded_measure = decoder.decode_frame_content(measure)
                 if decoded_measure:
                     if (
-                        obis_map.NEK_HAN_FIELD_METER_ID in decoded_measure
-                        and obis_map.NEK_HAN_FIELD_METER_MANUFACTURER in decoded_measure
+                        obis_map.FIELD_METER_ID in decoded_measure
+                        and obis_map.FIELD_METER_MANUFACTURER in decoded_measure
                     ):
                         return MeterInfo.from_measure_data(decoded_measure)
 

@@ -91,10 +91,10 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 METER_DATA_INFO_KEYS = [
-    obis_map.NEK_HAN_FIELD_METER_MANUFACTURER,
-    obis_map.NEK_HAN_FIELD_METER_TYPE,
-    obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID,
-    obis_map.NEK_HAN_FIELD_METER_ID,
+    obis_map.FIELD_METER_MANUFACTURER,
+    obis_map.FIELD_METER_TYPE,
+    obis_map.FIELD_OBIS_LIST_VER_ID,
+    obis_map.FIELD_METER_ID,
 ]
 
 

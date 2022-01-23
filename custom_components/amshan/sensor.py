@@ -73,31 +73,31 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
     sensor.key: sensor
     for sensor in [
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_METER_ID,
+            key=obis_map.FIELD_METER_ID,
             entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter ID",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_METER_MANUFACTURER,
+            key=obis_map.FIELD_METER_MANUFACTURER,
             entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter manufacturer",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_METER_TYPE,
+            key=obis_map.FIELD_METER_TYPE,
             entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter type",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_OBIS_LIST_VER_ID,
+            key=obis_map.FIELD_OBIS_LIST_VER_ID,
             entity_category=EntityCategory.DIAGNOSTIC,
             name="OBIS List version identifier",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT,
+            key=obis_map.FIELD_ACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.POWER,
             native_unit_of_measurement=POWER_WATT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -107,7 +107,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT,
+            key=obis_map.FIELD_ACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.POWER,
             native_unit_of_measurement=POWER_WATT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -117,7 +117,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT,
+            key=obis_map.FIELD_REACTIVE_POWER_IMPORT,
             native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
@@ -127,7 +127,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT,
+            key=obis_map.FIELD_REACTIVE_POWER_EXPORT,
             native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
@@ -137,7 +137,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_CURRENT_L1,
+            key=obis_map.FIELD_CURRENT_L1,
             device_class=SensorDeviceClass.CURRENT,
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
@@ -147,7 +147,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_CURRENT_L2,
+            key=obis_map.FIELD_CURRENT_L2,
             device_class=SensorDeviceClass.CURRENT,
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
@@ -156,7 +156,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_CURRENT_L3,
+            key=obis_map.FIELD_CURRENT_L3,
             device_class=SensorDeviceClass.CURRENT,
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
@@ -165,7 +165,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L1,
+            key=obis_map.FIELD_VOLTAGE_L1,
             device_class=SensorDeviceClass.VOLTAGE,
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -175,7 +175,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L2,
+            key=obis_map.FIELD_VOLTAGE_L2,
             device_class=SensorDeviceClass.VOLTAGE,
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -185,7 +185,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_VOLTAGE_L3,
+            key=obis_map.FIELD_VOLTAGE_L3,
             device_class=SensorDeviceClass.VOLTAGE,
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -195,7 +195,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_IMPORT_HOUR,
+            key=obis_map.FIELD_ACTIVE_POWER_IMPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
             native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
@@ -207,7 +207,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_ACTIVE_POWER_EXPORT_HOUR,
+            key=obis_map.FIELD_ACTIVE_POWER_EXPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
             native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
@@ -219,7 +219,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_IMPORT_HOUR,
+            key=obis_map.FIELD_REACTIVE_POWER_IMPORT_TOTAL,
             native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
@@ -230,7 +230,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             is_hour_sensor=True,
         ),
         AmsHanSensorEntityDescription(
-            key=obis_map.NEK_HAN_FIELD_REACTIVE_POWER_EXPORT_HOUR,
+            key=obis_map.FIELD_REACTIVE_POWER_EXPORT_TOTAL,
             native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
@@ -273,9 +273,9 @@ class AmsHanEntity(SensorEntity):
             raise TypeError("measure_id is required")
         if measure_data is None:
             raise TypeError("measure_data is required")
-        if obis_map.NEK_HAN_FIELD_METER_ID not in measure_data:
+        if obis_map.FIELD_METER_ID not in measure_data:
             raise ValueError(
-                f"Expected element {obis_map.NEK_HAN_FIELD_METER_ID} not in measure_data."
+                f"Expected element {obis_map.FIELD_METER_ID} not in measure_data."
             )
         if new_measure_signal_name is None:
             raise TypeError("new_measure_signal_name is required")
@@ -536,7 +536,7 @@ class MeterMeasureProcessor:
         self, measure_data: dict[str, str | int | float | datetime]
     ) -> None:
         # meter_id is required to register entities (required for unique_id).
-        meter_id = measure_data.get(obis_map.NEK_HAN_FIELD_METER_ID)
+        meter_id = measure_data.get(obis_map.FIELD_METER_ID)
         if meter_id:
             missing_measures = measure_data.keys() - self._known_measures
 
