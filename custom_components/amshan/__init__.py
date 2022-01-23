@@ -21,6 +21,7 @@ from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
 import serial_asyncio
@@ -106,6 +107,8 @@ async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
+    await async_migrate(hass, entry)
+
     measure_queue: Queue[bytes] = Queue(loop=hass.loop)
 
     connection = None
@@ -144,6 +147,27 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool
     hass.data[DOMAIN][entry.entry_id][ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE] = listener
 
     return True
+
+
+async def async_migrate(hass: HomeAssistantType, config_entry: ConfigEntry):
+    """Migrate entities if needed."""
+    registry = entity_registry.async_get(hass)
+    entries = entity_registry.async_entries_for_config_entry(
+        registry, config_entry.entry_id
+    )
+
+    def replace_ending(source, old, new):
+        if source.endswith(old):
+            return source[: -len(old)] + new
+        return source
+
+    for entity in entries:
+        if entity.unique_id.endswith("_hour"):
+            new_unique_id = replace_ending(entity.unique_id, "_hour", "_total")
+            _LOGGER.info(
+                "Migrate unique_id from %s to %s", entity.unique_id, new_unique_id
+            )
+            registry.async_update_entity(entity.entity_id, new_unique_id=new_unique_id)
 
 
 async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
