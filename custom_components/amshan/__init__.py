@@ -4,6 +4,7 @@ from __future__ import annotations
 from asyncio import AbstractEventLoop, BaseProtocol, Queue
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 import json
 import logging
 from typing import Any, Callable, List, Mapping, cast
@@ -21,13 +22,15 @@ from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import callback
-from homeassistant.helpers import entity_registry
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity_registry import RegistryEntry, async_migrate_entries
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
 import serial_asyncio
 import voluptuous as vol
 
 from .const import (
+    CONF_CONNECTION_CONFIG,
+    CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
     CONF_SERIAL_BAUDRATE,
     CONF_SERIAL_BYTESIZE,
@@ -50,6 +53,15 @@ from .const import (
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 PLATFORM_TYPE = Platform.SENSOR
+
+
+class ConnectionType(Enum):
+    """Meter connection type."""
+
+    SERIAL = "serial"
+    NETWORK = "network_tcpip"
+    MQTT = "hass_mqtt"
+
 
 SERIAL_SCHEMA_DICT = {
     vol.Required(CONF_SERIAL_PORT): cv.string,
@@ -80,12 +92,14 @@ HASS_MSMQ_SCHEMA = vol.Schema(HASS_MSMQ_SCHEMA_DICT)
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
-            vol.Any(
-                SERIAL_SCHEMA,
-                TCP_SCHEMA,
-                HASS_MSMQ_SCHEMA,
-                msg="Requires TCP, serial, or MQTT settings.",
-            )
+            {
+                vol.Required(CONF_CONNECTION_TYPE): cv.enum(ConnectionType),
+                vol.Required(CONF_CONNECTION_CONFIG): vol.Any(
+                    SERIAL_SCHEMA,
+                    TCP_SCHEMA,
+                    HASS_MSMQ_SCHEMA,
+                ),
+            }
         )
     },
     extra=vol.ALLOW_EXTRA,
@@ -107,19 +121,20 @@ async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
-    await async_migrate(hass, entry)
-
     measure_queue: Queue[bytes] = Queue(loop=hass.loop)
 
     connection = None
     mqtt_unsubscribe = None
 
-    if CONF_MQTT_TOPICS in entry.data:
+    connection_type = ConnectionType(entry.data[CONF_CONNECTION_TYPE])
+    if connection_type == ConnectionType.MQTT:
         mqtt_unsubscribe = await async_setup_meter_mqtt_subscriptions(
-            hass, entry.data, measure_queue
+            hass, entry.data[CONF_CONNECTION_CONFIG], measure_queue
         )
     else:
-        connection = setup_meter_connection(hass.loop, entry.data, measure_queue)
+        connection = setup_meter_connection(
+            hass.loop, entry.data[CONF_CONNECTION_CONFIG], measure_queue
+        )
 
     hass.data[DOMAIN][entry.entry_id] = {
         ENTRY_DATA_MEASURE_CONNECTION: connection,
@@ -149,25 +164,52 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool
     return True
 
 
-async def async_migrate(hass: HomeAssistantType, config_entry: ConfigEntry):
-    """Migrate entities if needed."""
-    registry = entity_registry.async_get(hass)
-    entries = entity_registry.async_entries_for_config_entry(
-        registry, config_entry.entry_id
-    )
+async def async_migrate_entry(
+    hass: HomeAssistantType, config_entry: ConfigEntry
+) -> bool:
+    """Migrate config entry if needed."""
+    initial_version = config_entry.version
+    _LOGGER.debug("Check for config entry migration of version %d", initial_version)
 
     def replace_ending(source, old, new):
         if source.endswith(old):
             return source[: -len(old)] + new
         return source
 
-    for entity in entries:
+    def migrate_entity_entry(entity: RegistryEntry):
+        update = {}
         if entity.unique_id.endswith("_hour"):
             new_unique_id = replace_ending(entity.unique_id, "_hour", "_total")
             _LOGGER.info(
                 "Migrate unique_id from %s to %s", entity.unique_id, new_unique_id
             )
-            registry.async_update_entity(entity.entity_id, new_unique_id=new_unique_id)
+            update["new_unique_id"] = new_unique_id
+        return update
+
+    if config_entry.version == 1:
+        await async_migrate_entries(hass, config_entry.entry_id, migrate_entity_entry)
+        config_entry.version = 2
+        version2_config = {
+            CONF_CONNECTION_TYPE: (
+                ConnectionType.MQTT
+                if CONF_MQTT_TOPICS in config_entry.data
+                else ConnectionType.NETWORK
+                if CONF_TCP_HOST in config_entry.data
+                else ConnectionType.SERIAL
+            ).value,
+            CONF_CONNECTION_CONFIG: {**config_entry.data},
+        }
+        hass.config_entries.async_update_entry(config_entry, data=version2_config)
+        _LOGGER.debug("Config entry migrated to version %d", initial_version)
+
+    if config_entry.version == initial_version:
+        _LOGGER.debug(
+            "Current config version %d is already the current version.", initial_version
+        )
+    else:
+        _LOGGER.debug("Config entry migration successfull.")
+
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistantType, entry: ConfigEntry) -> bool:

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from asyncio import AbstractEventLoop, CancelledError, Queue
-from enum import Enum
 import logging
 import socket
 from typing import Any, cast
@@ -29,11 +28,14 @@ from . import (
     HASS_MSMQ_SCHEMA,
     SERIAL_SCHEMA,
     TCP_SCHEMA,
+    ConnectionType,
     MeterInfo,
     get_connection_factory,
     get_frame_information,
 )
 from .const import (
+    CONF_CONNECTION_CONFIG,
+    CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
     CONF_OPTIONS_SCALE_FACTOR,
     CONF_SERIAL_BAUDRATE,
@@ -101,18 +103,10 @@ VALIDATION_ERROR_MQTT_NOT_AVAILAVLE = "mqtt_not_available"
 VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC = "invalid_subscribe_topic"
 
 
-class ConnectionType(Enum):
-    """Meter connection type."""
-
-    SERIAL = 1
-    NETWORK = 2
-    MQTT = 3
-
-
 class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for amshan."""
 
-    VERSION = 1
+    VERSION = 2
     CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:
@@ -162,12 +156,16 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
             if not self._validator.errors and meter_info:
                 await self.async_set_unique_id(meter_info.unique_id)
                 self._abort_if_unique_id_configured()
-
-                title = (
-                    f"{meter_info.manufacturer} {meter_info.type}"
-                    f" connected to {user_input[CONF_SERIAL_PORT]}"
+                return self.async_create_entry(
+                    title=(
+                        f"{meter_info.manufacturer} {meter_info.type} "
+                        f"connected to {user_input[CONF_SERIAL_PORT]}"
+                    ),
+                    data={
+                        CONF_CONNECTION_TYPE: ConnectionType.SERIAL.value,
+                        CONF_CONNECTION_CONFIG: user_input,
+                    },
                 )
-                return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(
             step_id="serial_connection",
@@ -189,9 +187,17 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
             if not self._validator.errors and meter_info:
                 await self.async_set_unique_id(meter_info.unique_id)
                 self._abort_if_unique_id_configured()
-
-                title = f"{meter_info.manufacturer} {meter_info.type} connected to {user_input[CONF_TCP_HOST]} port {user_input[CONF_TCP_PORT]}"
-                return self.async_create_entry(title=title, data=user_input)
+                return self.async_create_entry(
+                    title=(
+                        f"{meter_info.manufacturer} {meter_info.type} "
+                        f"connected to {user_input[CONF_TCP_HOST]} "
+                        f"port {user_input[CONF_TCP_PORT]}"
+                    ),
+                    data={
+                        CONF_CONNECTION_TYPE: ConnectionType.NETWORK.value,
+                        CONF_CONNECTION_CONFIG: user_input,
+                    },
+                )
 
         return self.async_show_form(
             step_id="network_connection",
@@ -213,9 +219,13 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
             if not self._validator.errors and meter_info:
                 await self.async_set_unique_id(meter_info.unique_id)
                 self._abort_if_unique_id_configured()
-
-                title = f"{meter_info.manufacturer} {meter_info.type} connected to MQTT"
-                return self.async_create_entry(title=title, data=user_input)
+                return self.async_create_entry(
+                    title=f"{meter_info.manufacturer} {meter_info.type} connected to MQTT",
+                    data={
+                        CONF_CONNECTION_TYPE: ConnectionType.MQTT.value,
+                        CONF_CONNECTION_CONFIG: user_input,
+                    },
+                )
 
         return self.async_show_form(
             step_id="hass_mqtt_connection",

@@ -33,6 +33,9 @@ HOSTNAME_IP4_IP6_REGEX = (
 )
 
 # Configuration and options
+CONF_CONNECTION_TYPE = "connection_type"
+CONF_CONNECTION_CONFIG = "connection"
+
 CONF_SERIAL_PORT = hassconst.CONF_PORT
 CONF_SERIAL_BAUDRATE = "baudrate"
 CONF_SERIAL_PARITY = "parity"
