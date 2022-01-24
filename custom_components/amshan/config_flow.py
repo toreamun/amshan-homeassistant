@@ -24,7 +24,7 @@ from homeassistant.helpers.typing import HomeAssistantType
 from serial import SerialException
 import voluptuous as vol
 
-from . import ConnectionType, MeterInfo, get_connection_factory, get_frame_information
+from . import ConnectionType, MeterInfo
 from .config import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
@@ -44,7 +44,9 @@ from .config import (
     SERIAL_SCHEMA,
     TCP_SCHEMA,
 )
+from .conman import get_connection_factory
 from .const import DOMAIN  # pylint:disable=unused-import
+from .hass_mqtt import get_frame_information
 
 _LOGGER = logging.getLogger(__name__)
 

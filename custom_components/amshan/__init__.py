@@ -1,47 +1,27 @@
 """The AMS HAN meter integration."""
 from __future__ import annotations
 
-from asyncio import AbstractEventLoop, BaseProtocol, Queue
+from asyncio import Queue
 from dataclasses import dataclass
 from datetime import datetime
-import json
 import logging
-from typing import Any, Callable, List, Mapping, cast
+from typing import Callable, cast
 
 from amshan import obis_map
-from amshan.hdlc import HdlcFrame, HdlcFrameReader
-from amshan.meter_connection import (
-    AsyncConnectionFactory,
-    ConnectionManager,
-    MeterTransportProtocol,
-    SmartMeterFrameContentProtocol,
-)
-from homeassistant.components import mqtt
-from homeassistant.components.mqtt.models import ReceiveMessage
+from amshan.meter_connection import ConnectionManager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import callback
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
-import serial_asyncio
 
 from .config import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
-    CONF_MQTT_TOPICS,
-    CONF_SERIAL_BAUDRATE,
-    CONF_SERIAL_BYTESIZE,
-    CONF_SERIAL_DSRDTR,
-    CONF_SERIAL_PARITY,
-    CONF_SERIAL_PORT,
-    CONF_SERIAL_RTSCTS,
-    CONF_SERIAL_STOPBITS,
-    CONF_SERIAL_XONXOFF,
-    CONF_TCP_HOST,
-    CONF_TCP_PORT,
     CONFIGURATION_SCHEMA,
     ConnectionType,
     async_migrate_config_entry,
 )
+from .conman import setup_meter_connection
 from .const import (
     DOMAIN,
     ENTRY_DATA_MEASURE_CONNECTION,
@@ -49,6 +29,7 @@ from .const import (
     ENTRY_DATA_MEASURE_QUEUE,
     ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE,
 )
+from .hass_mqtt import async_setup_meter_mqtt_subscriptions
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -173,149 +154,6 @@ async def async_close(
 
     # signal processor to exit processing loop by sending empty bytes on the queue
     await measure_queue.put(bytes())
-
-
-def setup_meter_connection(
-    loop: AbstractEventLoop,
-    config: Mapping[str, Any],
-    measure_queue: Queue[bytes],
-) -> ConnectionManager:
-    """Initialize ConnectionManager using configured connection type."""
-    connection_factory = get_connection_factory(loop, config, measure_queue)
-    return ConnectionManager(connection_factory)
-
-
-def get_connection_factory(
-    loop: AbstractEventLoop,
-    config: Mapping[str, Any],
-    measure_queue: Queue[bytes],
-) -> AsyncConnectionFactory:
-    """Get connection factory based on configured connection type."""
-
-    async def tcp_connection_factory() -> MeterTransportProtocol:
-        connection = await loop.create_connection(
-            lambda: cast(BaseProtocol, SmartMeterFrameContentProtocol(measure_queue)),
-            host=config[CONF_TCP_HOST],
-            port=config[CONF_TCP_PORT],
-        )
-        return cast(MeterTransportProtocol, connection)
-
-    async def serial_connection_factory() -> MeterTransportProtocol:
-        connection = await serial_asyncio.create_serial_connection(
-            loop,
-            lambda: SmartMeterFrameContentProtocol(measure_queue),
-            url=config[CONF_SERIAL_PORT],
-            baudrate=config[CONF_SERIAL_BAUDRATE],
-            parity=config[CONF_SERIAL_PARITY],
-            bytesize=config[CONF_SERIAL_BYTESIZE],
-            stopbits=float(config[CONF_SERIAL_STOPBITS]),
-            xonxoff=config[CONF_SERIAL_XONXOFF],
-            rtscts=config[CONF_SERIAL_RTSCTS],
-            dsrdtr=config[CONF_SERIAL_DSRDTR],
-        )
-        return cast(MeterTransportProtocol, connection)
-
-    # select tcp or serial connection factory
-    connection_factory = (
-        tcp_connection_factory if CONF_TCP_HOST in config else serial_connection_factory
-    )
-
-    return connection_factory
-
-
-def try_read_hdlc_frame(payload: bytes) -> HdlcFrame | None:
-    """Try to parse HDLC-frame from payload."""
-    frame_reader = HdlcFrameReader(False)
-
-    # Reader expects flag sequence in start and end.
-    flag_seqeuence = HdlcFrameReader.FLAG_SEQUENCE.to_bytes(1, byteorder="big")
-    if not payload.startswith(flag_seqeuence):
-        frame_reader.read(flag_seqeuence)
-
-    frames = frame_reader.read(payload)
-    if len(frames) == 0:
-        # add flag sequence to the end
-        frames = frame_reader.read(flag_seqeuence)
-
-    if len(frames) > 0:
-        return frames[0]
-
-    return None
-
-
-def get_frame_information(mqtt_message: ReceiveMessage) -> bytes | None:
-    """Get frame information part from mqtt message."""
-    # Try first to read as HDLC-frame.
-    frame = try_read_hdlc_frame(mqtt_message.payload)
-    if frame is not None:
-        if frame.is_good_ffc and frame.is_expected_length:
-            if frame.information is not None:
-                _LOGGER.debug(
-                    "Got valid frame of expected length with correct checksum from topic %s: %s",
-                    mqtt_message.topic,
-                    mqtt_message.payload.hex(),
-                )
-                return frame.information
-            else:
-                _LOGGER.debug(
-                    "Got empty frame of expected length with correct checksum from topic %s: %s",
-                    mqtt_message.topic,
-                    mqtt_message.payload.hex(),
-                )
-
-        _LOGGER.debug(
-            "Got invalid frame (ffc is %s and expected length is %s) from topic %s: %s",
-            frame.is_good_ffc,
-            frame.is_expected_length,
-            mqtt_message.topic,
-            mqtt_message.payload.hex(),
-        )
-        return None
-
-    try:
-        json_data = json.loads(mqtt_message.payload)
-        _LOGGER.debug(
-            "Ignore JSON in payload without HDLC framing from topic %s: %s",
-            mqtt_message.topic,
-            json_data,
-        )
-        return None
-    except ValueError:
-        pass
-
-    _LOGGER.debug(
-        "Got payload without HDLC framing from topic %s: %s",
-        mqtt_message.topic,
-        mqtt_message.payload.hex(),
-    )
-    return mqtt_message.payload
-
-
-async def async_setup_meter_mqtt_subscriptions(
-    hass: HomeAssistantType, config: Mapping[str, Any], measure_queue: "Queue[bytes]"
-) -> Callable:
-    """Set up MQTT topic subscriptions."""
-
-    @callback
-    def message_received(mqtt_message: ReceiveMessage):
-        """Handle new MQTT messages."""
-        information = get_frame_information(mqtt_message)
-        if information:
-            measure_queue.put_nowait(information)
-
-    unsubscibers: List[Callable] = []
-    topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
-    for topic in topics:
-        unsubscibers.append(
-            await mqtt.async_subscribe(hass, topic, message_received, 1, encoding=None)
-        )
-
-    def unsubscribe_mqtt():
-        _LOGGER.debug("Unsubscribe %d MQTT topic(s)", len(unsubscibers))
-        for unsubscribe in unsubscibers:
-            unsubscribe()
-
-    return unsubscribe_mqtt
 
 
 @dataclass
