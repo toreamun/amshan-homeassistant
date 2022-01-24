@@ -3,11 +3,6 @@ from __future__ import annotations
 
 DOMAIN = "amshan"
 
-ENTRY_DATA_MEASURE_QUEUE = "measure_queue"
-ENTRY_DATA_MEASURE_CONNECTION = "connection"
-ENTRY_DATA_MEASURE_MQTT_SUBSCRIPTIONS = "mqtt_subscriptions"
-ENTRY_DATA_UPDATE_LISTENER_UNSUBSCRIBE = "update_listener_unsubscribe"
-
 ICON_POWER_IMPORT = "mdi:flash"
 ICON_POWER_EXPORT = "mdi:flash-outline"
 ICON_CURRENT = "mdi:current-ac"

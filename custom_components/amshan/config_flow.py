@@ -268,9 +268,7 @@ class ConfigFlowValidation:
 
         raise TimeoutError()
 
-    async def _async_try_get_frame(
-        self, measure_queue: "Queue[bytes]"
-    ) -> MeterInfo | None:
+    async def _async_try_get_frame(self, measure_queue: "Queue[bytes]") -> bytes | None:
         async with timeout(MAX_FRAME_WAIT_TIME):
             try:
                 return await measure_queue.get()
@@ -328,7 +326,7 @@ class ConfigFlowValidation:
         measure_queue: Queue[bytes] = Queue()
 
         @callback
-        def message_received(mqtt_message: ReceiveMessage):
+        def message_received(mqtt_message: ReceiveMessage) -> None:
             """Handle new MQTT messages."""
             information = get_frame_information(mqtt_message)
             if information:
@@ -433,7 +431,7 @@ class ConfigFlowValidation:
 class AmsHanOptionsFlowHandler(OptionsFlow):
     """Config flow options handler."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
         self.options = dict(config_entry.options)

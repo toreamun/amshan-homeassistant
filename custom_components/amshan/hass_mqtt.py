@@ -91,7 +91,7 @@ async def async_setup_meter_mqtt_subscriptions(
     """Set up MQTT topic subscriptions."""
 
     @callback
-    def message_received(mqtt_message: ReceiveMessage):
+    def message_received(mqtt_message: ReceiveMessage) -> None:
         """Handle new MQTT messages."""
         information = get_frame_information(mqtt_message)
         if information:
@@ -104,8 +104,9 @@ async def async_setup_meter_mqtt_subscriptions(
             await mqtt.async_subscribe(hass, topic, message_received, 1, encoding=None)
         )
 
+    @callback
     def unsubscribe_mqtt():
-        _LOGGER.debug("Unsubscribe %d MQTT topic(s)", len(unsubscibers))
+        _LOGGER.debug("Unsubscribe %d MQTT topic(s): %s", len(unsubscibers), topics)
         for unsubscribe in unsubscibers:
             unsubscribe()
 

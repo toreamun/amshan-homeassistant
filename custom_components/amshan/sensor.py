@@ -1,7 +1,7 @@
 """amshan platform."""
 from __future__ import annotations
 
-from asyncio import Queue
+from asyncio import CancelledError, Queue
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
@@ -35,11 +35,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
-from . import MeterInfo
+from . import AmsHanIntegration, MeterInfo
 from .config import CONF_OPTIONS_SCALE_FACTOR
 from .const import (
     DOMAIN,
-    ENTRY_DATA_MEASURE_QUEUE,
     ICON_COUNTER,
     ICON_CURRENT,
     ICON_POWER_EXPORT,
@@ -250,11 +249,13 @@ async def async_setup_entry(
     async_add_entities: Callable[[list[Entity], bool], None],
 ):
     """Add hantest sensor platform from a config_entry."""
-    measure_queue = hass.data[DOMAIN][config_entry.entry_id][ENTRY_DATA_MEASURE_QUEUE]
+    ctx: AmsHanIntegration = hass.data[DOMAIN][config_entry.entry_id]
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
-        hass, config_entry, async_add_entities, measure_queue
+        hass, config_entry, async_add_entities, ctx.measure_queue
     )
-    hass.loop.create_task(processor.async_process_measures_loop())
+
+    # start processing loop task
+    ctx.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
 
 
 class AmsHanEntity(SensorEntity):
@@ -491,6 +492,9 @@ class MeterMeasureProcessor:
 
                 _LOGGER.debug("Received meter measures: %s", measure_data)
                 self._update_entities(measure_data)
+            except CancelledError:
+                _LOGGER.debug("Processing loop cancelled.")
+                return
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Error processing meter readings")
 
