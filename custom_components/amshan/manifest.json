@@ -1,7 +1,7 @@
 {
   "domain": "amshan",
   "name": "AMS HAN meter",
-  "version": "2022.1.7",
+  "version": "2022.1.8",
   "config_flow": true,
   "documentation": "https://github.com/toreamun/amshan-homeassistant",
   "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
