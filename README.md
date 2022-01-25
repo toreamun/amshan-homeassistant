@@ -137,5 +137,4 @@ connection: &han
 ```
 
 # Beta support
-Release 2022.1.8-beta lägger till betastöd för svenska mätare som använder COSEM/DLMS meddelandeformat. Observera att vissa detaljer inte visas i den aktuella versionen. Syfte är att lägga till stöd för alla meddelandeformat med alla detaljer.
-
+Release 2022.1.8-beta lägger till betastöd för svenska mätare som använder COSEM/DLMS meddelandeformat. Observera att vissa detaljer inte visas i den aktuella versionen. Syfte är att lägga till stöd för alla meddelandeformat med alla detaljer. Eventuella frågor och fel kan rapporteras och diskuteras [här(issue #24)](https://github.com/toreamun/amshan-homeassistant/issues/24). Hjälp behövs för att översätta [en.json] (https://github.com/toreamun/amshan-homeassistant/blob/master/custom_components/amshan/translations/en.json). Kontakta gärna eller gör en pull-förfrågan om du vill hjälpa till med det.
