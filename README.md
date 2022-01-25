@@ -13,7 +13,7 @@
 
 
 # AMS HAN Home Assistant integrasjon
-**Home Assistant integrasjon for Aidon, Kaifa and Kamstrum AMS-strømmålere. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
+**Home Assistant integrasjon for norske og svenske ([beta](#beta-support)) strømmålere av type Aidon, Kaifa and Kamstrup. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
 
 Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype).
 
@@ -135,3 +135,7 @@ connection: &han
       kickolduser: true
    connector: serialdev,/dev/ttyUSB0,2400e81,local
 ```
+
+# Beta support
+Release 2022.1.8-beta lägger till betastöd för svenska mätare som använder COSEM/DLMS meddelandeformat. Observera att vissa detaljer inte visas i den aktuella versionen. Syfte är att lägga till stöd för alla meddelandeformat med alla detaljer.
+
