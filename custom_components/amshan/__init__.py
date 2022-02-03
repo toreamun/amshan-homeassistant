@@ -122,10 +122,7 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) 
     # Listen for config entry changes and reload when changed.
     ctx.add_listener(config_entry.add_update_listener(async_config_entry_changed))
 
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(config_entry, PLATFORM_TYPE)
-    )
-
+    hass.config_entries.async_setup_platforms(config_entry, [PLATFORM_TYPE])
     hass.data[DOMAIN][config_entry.entry_id] = ctx
 
     return True
