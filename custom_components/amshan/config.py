@@ -1,6 +1,7 @@
 """Configration module."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
 import logging
 
@@ -9,8 +10,9 @@ from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 import homeassistant.const as hassconst
 from homeassistant.const import POWER_VOLT_AMPERE_REACTIVE
+from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity_registry import RegistryEntry, async_migrate_entries
+from homeassistant.helpers.entity_registry import RegistryEntry, async_get_registry
 from homeassistant.helpers.typing import HomeAssistantType
 import voluptuous as vol
 
@@ -98,7 +100,7 @@ async def async_migrate_config_entry(
     _LOGGER.debug("Check for config entry migration of version %d", initial_version)
 
     if config_entry.version == 1:
-        await async_migrate_entries(
+        await _async_migrate_entries(
             hass, config_entry.entry_id, _migrate_entity_entry_from_v1_to_v2
         )
         config_entry.version = 2
@@ -116,7 +118,7 @@ async def async_migrate_config_entry(
 
     if config_entry.version == 2:
         config_entry.version = 3
-        await async_migrate_entries(
+        await _async_migrate_entries(
             hass, config_entry.entry_id, _migrate_entity_entry_from_v2_to_v3
         )
         _LOGGER.debug("Config entry migrated to version 3")
@@ -198,3 +200,27 @@ def _migrate_entity_entry_from_v2_to_v3(entity: RegistryEntry):
             break
 
     return update
+
+
+async def _async_migrate_entries(
+    hass: HomeAssistant,
+    config_entry_id: str,
+    entry_callback: Callable[[RegistryEntry], dict | None],
+) -> None:
+    ent_reg = await async_get_registry(hass)
+
+    # Workaround:
+    # entity_registry.async_migrate_entries fails with:
+    #   "RuntimeError: dictionary keys changed during iteration"
+    # Try to get all entries from the dictionary before working on them.
+    # The migration dows not directly change any keys of the registry. Concurrency problem in HA?
+
+    entries = []
+    for entry in ent_reg.entities.values():
+        if entry.config_entry_id == config_entry_id:
+            entries.append(entry)
+
+    for entry in entries:
+        updates = entry_callback(entry)
+        if updates is not None:
+            ent_reg.async_update_entity(entry.entity_id, **updates)
