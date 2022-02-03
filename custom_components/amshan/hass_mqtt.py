@@ -4,7 +4,7 @@ from __future__ import annotations
 from asyncio import Queue
 import json
 import logging
-from typing import Any, Callable, List, Mapping
+from typing import Any, Callable, Mapping
 
 from amshan.hdlc import HdlcFrame, HdlcFrameReader
 from homeassistant.components import mqtt
@@ -97,7 +97,7 @@ async def async_setup_meter_mqtt_subscriptions(
         if information:
             measure_queue.put_nowait(information)
 
-    unsubscibers: List[Callable] = []
+    unsubscibers: list[Callable] = []
     topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
     for topic in topics:
         unsubscibers.append(
