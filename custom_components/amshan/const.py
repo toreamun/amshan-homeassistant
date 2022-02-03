@@ -9,7 +9,6 @@ ICON_CURRENT = "mdi:current-ac"
 ICON_VOLTAGE = "mdi:alpha-v-box-outline"
 ICON_COUNTER = "mdi:counter"
 
-UNIT_KILO_VOLT_AMPERE_REACTIVE = "kVAr"
 UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS = "kVArh"
 
 IPV4_ADR_REGEX = (

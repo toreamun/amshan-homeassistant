@@ -103,7 +103,7 @@ VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC = "invalid_subscribe_topic"
 class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for amshan."""
 
-    VERSION = 2
+    VERSION = 3
     CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:

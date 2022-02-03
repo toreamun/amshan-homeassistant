@@ -4,8 +4,11 @@ from __future__ import annotations
 from enum import Enum
 import logging
 
+import amshan.obis_map as obis_map
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 import homeassistant.const as hassconst
+from homeassistant.const import POWER_VOLT_AMPERE_REACTIVE
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_registry import RegistryEntry, async_migrate_entries
 from homeassistant.helpers.typing import HomeAssistantType
@@ -91,27 +94,15 @@ async def async_migrate_config_entry(
 ) -> bool:
     """Migrate config when ConfigFlow version has changed."""
     initial_version = config_entry.version
+    current_data = config_entry.data
     _LOGGER.debug("Check for config entry migration of version %d", initial_version)
 
-    def replace_ending(source, old, new):
-        if source.endswith(old):
-            return source[: -len(old)] + new
-        return source
-
-    def migrate_entity_entry(entity: RegistryEntry):
-        update = {}
-        if entity.unique_id.endswith("_hour"):
-            new_unique_id = replace_ending(entity.unique_id, "_hour", "_total")
-            _LOGGER.info(
-                "Migrate unique_id from %s to %s", entity.unique_id, new_unique_id
-            )
-            update["new_unique_id"] = new_unique_id
-        return update
-
     if config_entry.version == 1:
-        await async_migrate_entries(hass, config_entry.entry_id, migrate_entity_entry)
+        await async_migrate_entries(
+            hass, config_entry.entry_id, _migrate_entity_entry_from_v1_to_v2
+        )
         config_entry.version = 2
-        version2_config = {
+        current_data = {
             CONF_CONNECTION_TYPE: (
                 ConnectionType.MQTT
                 if CONF_MQTT_TOPICS in config_entry.data
@@ -119,16 +110,91 @@ async def async_migrate_config_entry(
                 if CONF_TCP_HOST in config_entry.data
                 else ConnectionType.SERIAL
             ).value,
-            CONF_CONNECTION_CONFIG: {**config_entry.data},
+            CONF_CONNECTION_CONFIG: {**current_data},
         }
-        hass.config_entries.async_update_entry(config_entry, data=version2_config)
-        _LOGGER.debug("Config entry migrated to version %d", initial_version)
+        _LOGGER.debug("Config entry migrated to version 2")
 
-    if config_entry.version == initial_version:
-        _LOGGER.debug(
-            "Current config version %d is already the current version.", initial_version
+    if config_entry.version == 2:
+        config_entry.version = 3
+        await async_migrate_entries(
+            hass, config_entry.entry_id, _migrate_entity_entry_from_v2_to_v3
         )
-    else:
-        _LOGGER.debug("Config entry migration successfull.")
+        _LOGGER.debug("Config entry migrated to version 3")
+
+    hass.config_entries.async_update_entry(config_entry, data=current_data)
+    _LOGGER.debug(
+        "Config entry migration from %d to %d successfull.",
+        initial_version,
+        config_entry.version,
+    )
 
     return True
+
+
+def _migrate_entity_entry_from_v1_to_v2(entity: RegistryEntry):
+    def replace_ending(source, old, new):
+        if source.endswith(old):
+            return source[: -len(old)] + new
+        return source
+
+    update = {}
+    if entity.unique_id.endswith("_hour"):
+        new_unique_id = replace_ending(entity.unique_id, "_hour", "_total")
+        _LOGGER.info("Migrate unique_id from %s to %s", entity.unique_id, new_unique_id)
+        update["new_unique_id"] = new_unique_id
+    return update
+
+
+V3_MIGRATE = [
+    obis_map.FIELD_METER_ID,
+    obis_map.FIELD_METER_MANUFACTURER,
+    obis_map.FIELD_METER_TYPE,
+    obis_map.FIELD_OBIS_LIST_VER_ID,
+    obis_map.FIELD_ACTIVE_POWER_IMPORT,
+    obis_map.FIELD_ACTIVE_POWER_EXPORT,
+    obis_map.FIELD_REACTIVE_POWER_IMPORT,
+    obis_map.FIELD_REACTIVE_POWER_EXPORT,
+    obis_map.FIELD_CURRENT_L1,
+    obis_map.FIELD_CURRENT_L2,
+    obis_map.FIELD_CURRENT_L3,
+    obis_map.FIELD_VOLTAGE_L1,
+    obis_map.FIELD_VOLTAGE_L2,
+    obis_map.FIELD_VOLTAGE_L3,
+    obis_map.FIELD_ACTIVE_POWER_IMPORT_TOTAL,
+    obis_map.FIELD_ACTIVE_POWER_EXPORT_TOTAL,
+    obis_map.FIELD_REACTIVE_POWER_IMPORT_TOTAL,
+    obis_map.FIELD_REACTIVE_POWER_EXPORT_TOTAL,
+]
+
+
+def _migrate_entity_entry_from_v2_to_v3(entity: RegistryEntry):
+    update = {}
+
+    for measure_id in V3_MIGRATE:
+        if entity.unique_id.endswith(f"-{measure_id}"):
+            manufacturer = entity.unique_id[: entity.unique_id.find("-")]
+            new_entity_id = f"sensor.{manufacturer}_{measure_id}".lower()
+            if new_entity_id != entity.entity_id:
+                update["new_entity_id"] = new_entity_id
+                _LOGGER.info(
+                    "Migrate entity_id from %s to %s",
+                    entity.entity_id,
+                    new_entity_id,
+                )
+
+            if measure_id in (
+                obis_map.FIELD_REACTIVE_POWER_IMPORT,
+                obis_map.FIELD_REACTIVE_POWER_EXPORT,
+            ):
+                update["device_class"] = SensorDeviceClass.REACTIVE_POWER
+                update["unit_of_measurement"] = POWER_VOLT_AMPERE_REACTIVE
+                _LOGGER.info(
+                    "Migrated %s to device class %s with unit %s",
+                    entity.unique_id,
+                    SensorDeviceClass.REACTIVE_POWER,
+                    POWER_VOLT_AMPERE_REACTIVE,
+                )
+
+            break
+
+    return update

@@ -10,7 +10,6 @@ from typing import Callable, Iterable, cast
 
 from amshan.autodecoder import AutoDecoder
 import amshan.obis_map as obis_map
-from homeassistant import util
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -22,6 +21,7 @@ from homeassistant.const import (
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
+    POWER_VOLT_AMPERE_REACTIVE,
     POWER_WATT,
     STATE_UNKNOWN,
 )
@@ -44,7 +44,6 @@ from .const import (
     ICON_POWER_EXPORT,
     ICON_POWER_IMPORT,
     ICON_VOLTAGE,
-    UNIT_KILO_VOLT_AMPERE_REACTIVE,
     UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
 )
 
@@ -117,22 +116,22 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_IMPORT,
-            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            device_class=SensorDeviceClass.REACTIVE_POWER,
+            native_unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Reactive power import (Q1+Q2)",
-            scale=0.001,
-            decimals=3,
+            decimals=0,
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_EXPORT,
-            native_unit_of_measurement=UNIT_KILO_VOLT_AMPERE_REACTIVE,
+            device_class=SensorDeviceClass.REACTIVE_POWER,
+            native_unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Reactive power export (Q3+Q4)",
-            scale=0.001,
-            decimals=3,
+            decimals=0,
             use_configured_scaling=True,
         ),
         AmsHanSensorEntityDescription(
@@ -141,7 +140,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_CURRENT,
-            name="IL1 Current phase L1",
+            name="Current phase L1",
             decimals=3,
             use_configured_scaling=True,
         ),
@@ -150,7 +149,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             device_class=SensorDeviceClass.CURRENT,
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
-            name="IL2 Current phase L2",
+            name="Current phase L2",
             decimals=3,
             use_configured_scaling=True,
         ),
@@ -159,7 +158,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             device_class=SensorDeviceClass.CURRENT,
             native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
-            name="IL3 Current phase L3",
+            name="Current phase L3",
             decimals=3,
             use_configured_scaling=True,
         ),
@@ -169,7 +168,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
-            name="UL1 Phase voltage",
+            name="Phase L1 voltage",
             decimals=1,
             use_configured_scaling=False,
         ),
@@ -179,7 +178,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
-            name="UL2 Phase voltage",
+            name="Phase L2 voltage",
             decimals=1,
             use_configured_scaling=False,
         ),
@@ -189,7 +188,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
             native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
-            name="UL3 Phase voltage",
+            name="Phase L3 voltage",
             decimals=1,
             use_configured_scaling=False,
         ),
@@ -292,9 +291,8 @@ class AmsHanEntity(SensorEntity):
             int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
         )
         self.entity_id = (
-            "sensor."
-            f"{self._meter_info.manufacturer}_{util.slugify(entity_description.name)}"
-        ).lower()
+            f"sensor.{self._meter_info.manufacturer}_{entity_description.key}".lower()
+        )
 
     @staticmethod
     def is_measure_id_supported(measure_id: str) -> bool:
