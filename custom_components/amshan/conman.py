@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from asyncio import AbstractEventLoop, BaseProtocol, Queue
-from typing import Any, Mapping, cast
+from asyncio import AbstractEventLoop, Queue
+from typing import Any, Mapping
 
-from amshan.meter_connection import (
+from han.meter_connection import (
     AsyncConnectionFactory,
     ConnectionManager,
     MeterTransportProtocol,
-    SmartMeterFrameContentProtocol,
 )
-import serial_asyncio
+from han.serial_connection_factory import create_serial_message_payload_connection
+from han.tcp_connection_factory import create_tcp_message_payload_connection
 
 from .config import (
     CONF_SERIAL_BAUDRATE,
@@ -45,17 +45,19 @@ def get_connection_factory(
     """Get connection factory based on configured connection type."""
 
     async def tcp_connection_factory() -> MeterTransportProtocol:
-        connection = await loop.create_connection(
-            lambda: cast(BaseProtocol, SmartMeterFrameContentProtocol(measure_queue)),
+        return await create_tcp_message_payload_connection(
+            measure_queue,
+            loop,
+            None,
             host=config[CONF_TCP_HOST],
             port=config[CONF_TCP_PORT],
         )
-        return cast(MeterTransportProtocol, connection)
 
     async def serial_connection_factory() -> MeterTransportProtocol:
-        connection = await serial_asyncio.create_serial_connection(
+        return await create_serial_message_payload_connection(
+            measure_queue,
             loop,
-            lambda: SmartMeterFrameContentProtocol(measure_queue),
+            None,
             url=config[CONF_SERIAL_PORT],
             baudrate=config[CONF_SERIAL_BAUDRATE],
             parity=config[CONF_SERIAL_PARITY],
@@ -65,7 +67,6 @@ def get_connection_factory(
             rtscts=config[CONF_SERIAL_RTSCTS],
             dsrdtr=config[CONF_SERIAL_DSRDTR],
         )
-        return cast(MeterTransportProtocol, connection)
 
     # select tcp or serial connection factory
     connection_factory = (

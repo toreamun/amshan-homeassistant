@@ -8,8 +8,8 @@ import logging
 from math import floor
 from typing import Callable, Iterable, cast
 
-from amshan.autodecoder import AutoDecoder
-import amshan.obis_map as obis_map
+from han.autodecoder import AutoDecoder
+import han.obis_map as obis_map
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -506,7 +506,7 @@ class MeterMeasureProcessor:
                 return dict()
 
             try:
-                decoded_measure = self._decoder.decode_frame_content(
+                decoded_measure = self._decoder.decode_message_payload(
                     measure_frame_content
                 )
                 if decoded_measure:
@@ -601,7 +601,7 @@ class MeterMeasureProcessor:
                         self._meter_info,
                     )
                 )
-                new_enitities.append(entity)
+                new_enitities.append(cast(AmsHanEntity, entity))
             else:
                 _LOGGER.debug("Ignore unhandled measure_id %s", measure_id)
         return new_enitities

@@ -5,7 +5,7 @@ from collections.abc import Callable
 from enum import Enum
 import logging
 
-import amshan.obis_map as obis_map
+import han.obis_map as obis_map
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 import homeassistant.const as hassconst

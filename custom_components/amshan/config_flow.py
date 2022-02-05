@@ -6,9 +6,9 @@ import logging
 import socket
 from typing import Any, cast
 
-from amshan import obis_map
-from amshan.autodecoder import AutoDecoder
 from async_timeout import timeout
+from han import obis_map
+from han.autodecoder import AutoDecoder
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt import DOMAIN as MQTT_DOMAIN, valid_subscribe_topic
 from homeassistant.components.mqtt.models import ReceiveMessage
@@ -256,7 +256,7 @@ class ConfigFlowValidation:
         for _ in range(MAX_FRAME_SEARCH_COUNT):
             measure = await self._async_try_get_frame(measure_queue)
             if measure is not None:
-                decoded_measure = decoder.decode_frame_content(measure)
+                decoded_measure = decoder.decode_message_payload(measure)
                 if decoded_measure:
                     if (
                         obis_map.FIELD_METER_ID in decoded_measure

@@ -8,8 +8,8 @@ import logging
 from types import MappingProxyType
 from typing import cast
 
-from amshan import obis_map
-from amshan.meter_connection import ConnectionManager
+from han import obis_map
+from han.meter_connection import ConnectionManager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import CALLBACK_TYPE, callback
@@ -60,10 +60,11 @@ class AmsHanIntegration:
                 hass, config[CONF_CONNECTION_CONFIG], self.measure_queue
             )
         else:
-            self._connection_manager = setup_meter_connection(
+            manager = setup_meter_connection(
                 hass.loop, config[CONF_CONNECTION_CONFIG], self.measure_queue
             )
-            hass.loop.create_task(self._connection_manager.connect_loop())
+            hass.loop.create_task(manager.connect_loop())
+            self._connection_manager = manager
 
     def add_listener(self, listener_unsubscribe: CALLBACK_TYPE) -> None:
         """Add listener to be removed on unload."""

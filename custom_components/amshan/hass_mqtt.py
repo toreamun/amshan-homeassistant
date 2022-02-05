@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Callable, Mapping
 
-from amshan.hdlc import HdlcFrame, HdlcFrameReader
+from han.hdlc import HdlcFrame, HdlcFrameReader
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.core import callback
@@ -43,13 +43,13 @@ def get_frame_information(mqtt_message: ReceiveMessage) -> bytes | None:
     frame = try_read_hdlc_frame(mqtt_message.payload)
     if frame is not None:
         if frame.is_good_ffc and frame.is_expected_length:
-            if frame.information is not None:
+            if frame.payload is not None:
                 _LOGGER.debug(
                     "Got valid frame of expected length with correct checksum from topic %s: %s",
                     mqtt_message.topic,
                     mqtt_message.payload.hex(),
                 )
-                return frame.information
+                return frame.payload
             else:
                 _LOGGER.debug(
                     "Got empty frame of expected length with correct checksum from topic %s: %s",
