@@ -6,7 +6,7 @@
     "error": {
       "cannot_connect": "Kunne ikkje kople til, ver vennleg og prøv igjen",
       "timeout_connect": "Tidsavbrudd ved tilkopling",
-      "timeout_read_frames": "Tidsavbrudd ved lesing av data",
+      "timeout_read_messages": "Tidsavbrudd ved lesing av data",
       "serial_exception_general": "Kunne ikkje opna serieport. Sjå logg for meir informasjon",
       "serial_exception_errno_2": "Kunne ikkje finna serieport",
       "unknown": "Ukjent feil",

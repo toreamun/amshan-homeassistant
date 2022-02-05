@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import Enum
 import logging
 
 import han.obis_map as obis_map
@@ -16,6 +15,7 @@ from homeassistant.helpers.entity_registry import RegistryEntry, async_get_regis
 from homeassistant.helpers.typing import HomeAssistantType
 import voluptuous as vol
 
+from .common import ConnectionType
 from .const import DOMAIN, HOSTNAME_IP4_IP6_REGEX
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,14 +38,6 @@ CONF_TCP_PORT = hassconst.CONF_PORT
 CONF_MQTT_TOPICS = "mqtt_topics"
 
 CONF_OPTIONS_SCALE_FACTOR = "scale_factor"
-
-
-class ConnectionType(Enum):
-    """Meter connection type."""
-
-    SERIAL = "serial"
-    NETWORK = "network_tcpip"
-    MQTT = "hass_mqtt"
 
 
 SERIAL_SCHEMA_DICT = {

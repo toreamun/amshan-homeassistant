@@ -5,13 +5,14 @@ from __future__ import annotations
 from asyncio import AbstractEventLoop, Queue
 from typing import Any, Mapping
 
+from han.common import MeterMessageBase
 from han.meter_connection import (
     AsyncConnectionFactory,
     ConnectionManager,
     MeterTransportProtocol,
 )
-from han.serial_connection_factory import create_serial_message_payload_connection
-from han.tcp_connection_factory import create_tcp_message_payload_connection
+from han.serial_connection_factory import create_serial_message_connection
+from han.tcp_connection_factory import create_tcp_message_connection
 
 from .config import (
     CONF_SERIAL_BAUDRATE,
@@ -30,7 +31,7 @@ from .config import (
 def setup_meter_connection(
     loop: AbstractEventLoop,
     config: Mapping[str, Any],
-    measure_queue: Queue[bytes],
+    measure_queue: Queue[MeterMessageBase],
 ) -> ConnectionManager:
     """Initialize ConnectionManager using configured connection type."""
     connection_factory = get_connection_factory(loop, config, measure_queue)
@@ -40,12 +41,12 @@ def setup_meter_connection(
 def get_connection_factory(
     loop: AbstractEventLoop,
     config: Mapping[str, Any],
-    measure_queue: Queue[bytes],
+    measure_queue: Queue[MeterMessageBase],
 ) -> AsyncConnectionFactory:
     """Get connection factory based on configured connection type."""
 
     async def tcp_connection_factory() -> MeterTransportProtocol:
-        return await create_tcp_message_payload_connection(
+        return await create_tcp_message_connection(
             measure_queue,
             loop,
             None,
@@ -54,7 +55,7 @@ def get_connection_factory(
         )
 
     async def serial_connection_factory() -> MeterTransportProtocol:
-        return await create_serial_message_payload_connection(
+        return await create_serial_message_connection(
             measure_queue,
             loop,
             None,

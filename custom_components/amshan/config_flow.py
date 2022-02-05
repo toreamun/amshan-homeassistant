@@ -9,6 +9,7 @@ from typing import Any, cast
 from async_timeout import timeout
 from han import obis_map
 from han.autodecoder import AutoDecoder
+from han.common import MeterMessageBase
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt import DOMAIN as MQTT_DOMAIN, valid_subscribe_topic
 from homeassistant.components.mqtt.models import ReceiveMessage
@@ -24,7 +25,7 @@ from homeassistant.helpers.typing import HomeAssistantType
 from serial import SerialException
 import voluptuous as vol
 
-from . import ConnectionType, MeterInfo
+from .common import ConnectionType, MeterInfo
 from .config import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
@@ -46,7 +47,7 @@ from .config import (
 )
 from .conman import get_connection_factory
 from .const import DOMAIN  # pylint:disable=unused-import
-from .hass_mqtt import get_frame_information
+from .hass_mqtt import get_meter_message
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ MAX_FRAME_WAIT_TIME = 12
 # The specified errors need to refer to a key in a translation file.
 VALIDATION_ERROR_BASE = "base"
 VALIDATION_ERROR_TIMEOUT_CONNECT = "timeout_connect"
-VALIDATION_ERROR_TIMEOUT_READ_FRAMES = "timeout_read_frames"
+VALIDATION_ERROR_TIMEOUT_READ_MESSAGE = "timeout_read_messages"
 VALIDATION_ERROR_HOST_CHECK = "host_check"
 VALIDATION_ERROR_VOLUPTUOUS_BASE = "voluptuous_"
 VALIDATION_ERROR_SERIAL_EXCEPTION_GENERAL = "serial_exception_general"
@@ -249,14 +250,16 @@ class ConfigFlowValidation:
         """
         self.errors[VALIDATION_ERROR_BASE] = error_key
 
-    async def _async_get_meter_info(self, measure_queue: "Queue[bytes]") -> MeterInfo:
+    async def _async_get_meter_info(
+        self, measure_queue: Queue[MeterMessageBase]
+    ) -> MeterInfo:
         """Decode meter data stream and return meter information if available."""
         decoder = AutoDecoder()
 
         for _ in range(MAX_FRAME_SEARCH_COUNT):
-            measure = await self._async_try_get_frame(measure_queue)
+            measure = await self._async_try_get_message(measure_queue)
             if measure is not None:
-                decoded_measure = decoder.decode_message_payload(measure)
+                decoded_measure = decoder.decode_message(measure)
                 if decoded_measure:
                     if (
                         obis_map.FIELD_METER_ID in decoded_measure
@@ -268,7 +271,9 @@ class ConfigFlowValidation:
 
         raise TimeoutError()
 
-    async def _async_try_get_frame(self, measure_queue: "Queue[bytes]") -> bytes | None:
+    async def _async_try_get_message(
+        self, measure_queue: "Queue[MeterMessageBase]"
+    ) -> MeterMessageBase | None:
         async with timeout(MAX_FRAME_WAIT_TIME):
             try:
                 return await measure_queue.get()
@@ -282,7 +287,7 @@ class ConfigFlowValidation:
         self, loop: AbstractEventLoop, user_input: dict[str, Any]
     ) -> MeterInfo | None:
         """Try to connect and get meter information to validate connection data."""
-        measure_queue: Queue[bytes] = Queue()
+        measure_queue: Queue[MeterMessageBase] = Queue()
         connection_factory = get_connection_factory(loop, user_input, measure_queue)
 
         transport = None
@@ -314,7 +319,7 @@ class ConfigFlowValidation:
             try:
                 return await self._async_get_meter_info(measure_queue)
             except TimeoutError:
-                self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_FRAMES)
+                self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_MESSAGE)
                 return None
         finally:
             if transport:
@@ -323,14 +328,14 @@ class ConfigFlowValidation:
     async def _async_validate_mqtt_connection(
         self, hass: HomeAssistantType, user_input: dict[str, Any]
     ) -> MeterInfo | None:
-        measure_queue: Queue[bytes] = Queue()
+        measure_queue: Queue[MeterMessageBase] = Queue()
 
         @callback
         def message_received(mqtt_message: ReceiveMessage) -> None:
             """Handle new MQTT messages."""
-            information = get_frame_information(mqtt_message)
-            if information:
-                measure_queue.put_nowait(information)
+            meter_message = get_meter_message(mqtt_message)
+            if meter_message:
+                measure_queue.put_nowait(meter_message)
 
         unsubscibers = []
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
@@ -344,7 +349,7 @@ class ConfigFlowValidation:
         try:
             return await self._async_get_meter_info(measure_queue)
         except TimeoutError:
-            self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_FRAMES)
+            self._set_base_error(VALIDATION_ERROR_TIMEOUT_READ_MESSAGE)
             return None
         finally:
             for ubsubscribe in unsubscibers:

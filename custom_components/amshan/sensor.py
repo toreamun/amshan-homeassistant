@@ -9,6 +9,7 @@ from math import floor
 from typing import Callable, Iterable, cast
 
 from han.autodecoder import AutoDecoder
+from han.common import MeterMessageBase
 import han.obis_map as obis_map
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -35,7 +36,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
-from . import AmsHanIntegration, MeterInfo
+from . import AmsHanIntegration
+from .common import MeterInfo, StopMessage
 from .config import CONF_OPTIONS_SCALE_FACTOR
 from .const import (
     DOMAIN,
@@ -465,7 +467,7 @@ class MeterMeasureProcessor:
         hass: HomeAssistantType,
         config_entry: ConfigEntry,
         async_add_entities: Callable[[list[Entity], bool], None],
-        measure_queue: Queue[bytes],
+        measure_queue: Queue[MeterMessageBase],
     ) -> None:
         """Initialize MeterMeasureProcessor class."""
         self._hass = hass
@@ -480,46 +482,45 @@ class MeterMeasureProcessor:
         self._meter_info: MeterInfo | None = None
 
     async def async_process_measures_loop(self) -> None:
-        """Start the processing loop. The method exits when None is received from queue."""
+        """Start the processing loop. The method exits when StopMessage is received from queue."""
         while True:
             try:
-                measure_data = await self._async_decode_next_valid_frame()
-                if not measure_data:
+                message = await self._async_decode_next_valid_message()
+                if not message:
                     _LOGGER.debug("Received stop signal. Exit processing.")
                     return
 
-                _LOGGER.debug("Received meter measures: %s", measure_data)
-                self._update_entities(measure_data)
+                _LOGGER.debug("Received meter measures: %s", message)
+                self._update_entities(message)
             except CancelledError:
                 _LOGGER.debug("Processing loop cancelled.")
                 return
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Error processing meter readings")
 
-    async def _async_decode_next_valid_frame(
+    async def _async_decode_next_valid_message(
         self,
     ) -> dict[str, str | int | float | datetime]:
         while True:
-            measure_frame_content = await self._measure_queue.get()
-            if not measure_frame_content:
-                # stop signal (empty bytes) reveived
+            message = await self._measure_queue.get()
+            if isinstance(message, StopMessage):
+                # stop signal reveived
                 return dict()
 
             try:
-                decoded_measure = self._decoder.decode_message_payload(
-                    measure_frame_content
-                )
+                decoded_measure = self._decoder.decode_message(message)
                 if decoded_measure:
-                    _LOGGER.debug("Decoded meter frame: %s", decoded_measure)
+                    _LOGGER.debug("Decoded meter message: %s", decoded_measure)
                     return decoded_measure
 
                 _LOGGER.warning(
-                    "Could not decode meter frame: %s", measure_frame_content.hex()
+                    "Could not decode meter message: %s",
+                    message.as_bytes.hex() if message.as_bytes else bytes(),
                 )
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception(
-                    "Exception when decoding meter frame: %s",
-                    measure_frame_content.hex(),
+                    "Exception when decoding meter message: %s",
+                    message.as_bytes.hex() if message.as_bytes else bytes(),
                 )
 
     def _update_entities(

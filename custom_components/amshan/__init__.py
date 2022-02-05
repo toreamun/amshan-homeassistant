@@ -2,19 +2,17 @@
 from __future__ import annotations
 
 from asyncio import Queue, Task, gather
-from dataclasses import dataclass
-from datetime import datetime
 import logging
 from types import MappingProxyType
-from typing import cast
 
-from han import obis_map
+from han.common import MeterMessageBase
 from han.meter_connection import ConnectionManager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
 
+from .common import StopMessage
 from .config import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
@@ -32,13 +30,6 @@ PLATFORM_TYPE = Platform.SENSOR
 
 CONFIG_SCHEMA = CONFIGURATION_SCHEMA
 
-METER_DATA_INFO_KEYS = [
-    obis_map.FIELD_METER_MANUFACTURER,
-    obis_map.FIELD_METER_TYPE,
-    obis_map.FIELD_OBIS_LIST_VER_ID,
-    obis_map.FIELD_METER_ID,
-]
-
 
 class AmsHanIntegration:
     """AMS HAN integration."""
@@ -49,7 +40,7 @@ class AmsHanIntegration:
         self._mqtt_unsubscribe: CALLBACK_TYPE
         self._listeners: list[CALLBACK_TYPE] = []
         self._tasks: list[Task] = []
-        self.measure_queue: Queue[bytes] = Queue()
+        self.measure_queue: Queue[MeterMessageBase] = Queue()
 
     async def async_setup_receiver(
         self, hass: HomeAssistantType, config: MappingProxyType
@@ -90,7 +81,7 @@ class AmsHanIntegration:
     def stop_receive(self) -> None:
         """Stop receivers (serial/tcpip and/or MQTT."""
         # signal processor to exit processing loop by sending empty bytes on the queue
-        self.measure_queue.put_nowait(bytes())
+        self.measure_queue.put_nowait(StopMessage())
 
         if self._connection_manager:
             self._connection_manager.close()
@@ -159,25 +150,3 @@ async def async_config_entry_changed(
     """Handle config entry chnaged callback."""
     _LOGGER.info("Config entry has changed. Reload integration.")
     await hass.config_entries.async_reload(config_entry.entry_id)
-
-
-@dataclass
-class MeterInfo:
-    """Info about meter."""
-
-    manufacturer: str
-    type: str
-    list_version_id: str
-    meter_id: str
-
-    @property
-    def unique_id(self) -> str:
-        """Meter unique id."""
-        return f"{self.manufacturer}-{self.type}-{self.meter_id}".lower()
-
-    @classmethod
-    def from_measure_data(
-        cls, measure_data: dict[str, str | int | float | datetime]
-    ) -> MeterInfo:
-        """Create MeterInfo from measure_data dictionary."""
-        return cls(*[cast(str, measure_data[key]) for key in METER_DATA_INFO_KEYS])
