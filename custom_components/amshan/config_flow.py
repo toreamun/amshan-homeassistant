@@ -11,6 +11,7 @@ from han import autodecoder, common as han_type, obis_map
 from homeassistant import config_entries
 from homeassistant.components import mqtt
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import HomeAssistantType
 import serial
@@ -114,7 +115,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> FlowResult:
         """Handle the initial step."""
         errors = {}
         if user_input is not None:
@@ -137,28 +138,12 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_serial_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> FlowResult:
         """Handle the network connection step."""
         if user_input:
-            meter_info = await self._validator.async_validate_connection_input(
-                cast(HomeAssistantType, self.hass),
-                ConnectionType.SERIAL,
-                user_input,
-            )
-
-            if not self._validator.errors and meter_info:
-                await self.async_set_unique_id(meter_info.unique_id)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=(
-                        f"{meter_info.manufacturer} {meter_info.type} "
-                        f"connected to {user_input[ CONF_SERIAL_PORT]}"
-                    ),
-                    data={
-                        CONF_CONNECTION_TYPE: ConnectionType.SERIAL.value,
-                        CONF_CONNECTION_CONFIG: user_input,
-                    },
-                )
+            entry_result = self._try_create_entry(ConnectionType.SERIAL, user_input)
+            if entry_result:
+                return entry_result
 
         return self.async_show_form(
             step_id="serial_connection",
@@ -168,29 +153,12 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_network_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> FlowResult:
         """Handle the network connection step."""
         if user_input:
-            meter_info = await self._validator.async_validate_connection_input(
-                cast(HomeAssistantType, self.hass),
-                ConnectionType.NETWORK,
-                user_input,
-            )
-
-            if not self._validator.errors and meter_info:
-                await self.async_set_unique_id(meter_info.unique_id)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=(
-                        f"{meter_info.manufacturer} {meter_info.type} "
-                        f"connected to {user_input[ CONF_TCP_HOST]} "
-                        f"port {user_input[ CONF_TCP_PORT]}"
-                    ),
-                    data={
-                        CONF_CONNECTION_TYPE: ConnectionType.NETWORK.value,
-                        CONF_CONNECTION_CONFIG: user_input,
-                    },
-                )
+            entry_result = self._try_create_entry(ConnectionType.NETWORK, user_input)
+            if entry_result:
+                return entry_result
 
         return self.async_show_form(
             step_id="network_connection",
@@ -200,31 +168,40 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_hass_mqtt_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> FlowResult:
         """Handle MQTT step."""
         if user_input:
-            meter_info = await self._validator.async_validate_connection_input(
-                cast(HomeAssistantType, self.hass),
-                ConnectionType.MQTT,
-                user_input,
-            )
-
-            if not self._validator.errors and meter_info:
-                await self.async_set_unique_id(meter_info.unique_id)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=f"{meter_info.manufacturer} {meter_info.type} connected to MQTT",
-                    data={
-                        CONF_CONNECTION_TYPE: ConnectionType.MQTT.value,
-                        CONF_CONNECTION_CONFIG: user_input,
-                    },
-                )
+            entry_result = self._try_create_entry(ConnectionType.MQTT, user_input)
+            if entry_result:
+                return entry_result
 
         return self.async_show_form(
             step_id="hass_mqtt_connection",
             data_schema=DATA_SCHEMA_MQTT_DATA,
             errors=self._validator.errors,
         )
+
+    async def _try_create_entry(
+        self, connection_type: ConnectionType, user_input: dict[str, Any]
+    ) -> FlowResult | None:
+        meter_info = await self._validator.async_validate_connection_input(
+            cast(HomeAssistantType, self.hass),
+            connection_type,
+            user_input,
+        )
+
+        if not self._validator.errors and meter_info:
+            await self.async_set_unique_id(meter_info.unique_id)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=f"{meter_info.manufacturer} {meter_info.type}",
+                data={
+                    CONF_CONNECTION_TYPE: connection_type.value,
+                    CONF_CONNECTION_CONFIG: user_input,
+                },
+            )
+
+        return None
 
     def _is_mqtt_available(self) -> bool:
         return mqtt.DOMAIN in self.hass.config.components
