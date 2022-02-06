@@ -1,17 +1,14 @@
-"""Configration module."""
+"""Configuration module."""
 from __future__ import annotations
 
-from collections.abc import Callable
 import logging
+from typing import Callable
 
-import han.obis_map as obis_map
-from homeassistant.components.sensor import SensorDeviceClass
+from han import obis_map
+from homeassistant import const as ha_const
+from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
-import homeassistant.const as hassconst
-from homeassistant.const import POWER_VOLT_AMPERE_REACTIVE
-from homeassistant.core import HomeAssistant
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity_registry import RegistryEntry, async_get_registry
+from homeassistant.helpers import config_validation as cv, entity_registry
 from homeassistant.helpers.typing import HomeAssistantType
 import voluptuous as vol
 
@@ -23,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 CONF_CONNECTION_TYPE = "connection_type"
 CONF_CONNECTION_CONFIG = "connection"
 
-CONF_SERIAL_PORT = hassconst.CONF_PORT
+CONF_SERIAL_PORT = ha_const.CONF_PORT
 CONF_SERIAL_BAUDRATE = "baudrate"
 CONF_SERIAL_PARITY = "parity"
 CONF_SERIAL_BYTESIZE = "bytesize"
@@ -32,8 +29,8 @@ CONF_SERIAL_XONXOFF = "xonxoff"
 CONF_SERIAL_RTSCTS = "rtscts"
 CONF_SERIAL_DSRDTR = "dsrdtr"
 
-CONF_TCP_HOST = hassconst.CONF_HOST
-CONF_TCP_PORT = hassconst.CONF_PORT
+CONF_TCP_HOST = ha_const.CONF_HOST
+CONF_TCP_PORT = ha_const.CONF_PORT
 
 CONF_MQTT_TOPICS = "mqtt_topics"
 
@@ -125,7 +122,7 @@ async def async_migrate_config_entry(
     return True
 
 
-def _migrate_entity_entry_from_v1_to_v2(entity: RegistryEntry):
+def _migrate_entity_entry_from_v1_to_v2(entity: entity_registry.RegistryEntry):
     def replace_ending(source, old, new):
         if source.endswith(old):
             return source[: -len(old)] + new
@@ -161,7 +158,7 @@ V3_MIGRATE = [
 ]
 
 
-def _migrate_entity_entry_from_v2_to_v3(entity: RegistryEntry):
+def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
     update = {}
 
     for measure_id in V3_MIGRATE:
@@ -180,13 +177,13 @@ def _migrate_entity_entry_from_v2_to_v3(entity: RegistryEntry):
                 obis_map.FIELD_REACTIVE_POWER_IMPORT,
                 obis_map.FIELD_REACTIVE_POWER_EXPORT,
             ):
-                update["device_class"] = SensorDeviceClass.REACTIVE_POWER
-                update["unit_of_measurement"] = POWER_VOLT_AMPERE_REACTIVE
+                update["device_class"] = ha_sensor.SensorDeviceClass.REACTIVE_POWER
+                update["unit_of_measurement"] = ha_const.POWER_VOLT_AMPERE_REACTIVE
                 _LOGGER.info(
                     "Migrated %s to device class %s with unit %s",
                     entity.unique_id,
-                    SensorDeviceClass.REACTIVE_POWER,
-                    POWER_VOLT_AMPERE_REACTIVE,
+                    ha_sensor.SensorDeviceClass.REACTIVE_POWER,
+                    ha_const.POWER_VOLT_AMPERE_REACTIVE,
                 )
 
             break
@@ -195,11 +192,11 @@ def _migrate_entity_entry_from_v2_to_v3(entity: RegistryEntry):
 
 
 async def _async_migrate_entries(
-    hass: HomeAssistant,
+    hass: HomeAssistantType,
     config_entry_id: str,
-    entry_callback: Callable[[RegistryEntry], dict | None],
+    entry_callback: Callable[[entity_registry.RegistryEntry], dict | None],
 ) -> None:
-    ent_reg = await async_get_registry(hass)
+    ent_reg = await entity_registry.async_get_registry(hass)
 
     # Workaround:
     # entity_registry.async_migrate_entries fails with:

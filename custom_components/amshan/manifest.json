@@ -9,7 +9,7 @@
     "@toreamun"
   ],
   "requirements": [
-    "amshan[serial]==2.0.1"
+    "amshan[serial]==2.0.2"
   ],
   "after_dependencies": [
     "mqtt"

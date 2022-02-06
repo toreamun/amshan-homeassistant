@@ -1,32 +1,29 @@
 """The AMS HAN meter integration."""
 from __future__ import annotations
 
-from asyncio import Queue, Task, gather
+import asyncio
 import logging
-from types import MappingProxyType
+from typing import Mapping
 
-from han.common import MeterMessageBase
-from han.meter_connection import ConnectionManager
+from han import common as han_type, meter_connection
+from homeassistant import const as ha_const
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
 
-from .common import StopMessage
-from .config import (
+from .amshancfg import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
     CONFIGURATION_SCHEMA,
-    ConnectionType,
     async_migrate_config_entry,
 )
-from .conman import setup_meter_connection
+from .common import ConnectionType, StopMessage
 from .const import DOMAIN
-from .hass_mqtt import async_setup_meter_mqtt_subscriptions
+from .metercon import async_setup_meter_mqtt_subscriptions, setup_meter_connection
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
-PLATFORM_TYPE = Platform.SENSOR
+PLATFORM_TYPE = ha_const.Platform.SENSOR
 
 CONFIG_SCHEMA = CONFIGURATION_SCHEMA
 
@@ -36,23 +33,27 @@ class AmsHanIntegration:
 
     def __init__(self) -> None:
         """Initialize AmsHanIntegration."""
-        self._connection_manager: ConnectionManager | None = None
+        self._connection_manager: meter_connection.ConnectionManager | None = None
         self._mqtt_unsubscribe: CALLBACK_TYPE
         self._listeners: list[CALLBACK_TYPE] = []
-        self._tasks: list[Task] = []
-        self.measure_queue: Queue[MeterMessageBase] = Queue()
+        self._tasks: list[asyncio.Task] = []
+        self.measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()
 
     async def async_setup_receiver(
-        self, hass: HomeAssistantType, config: MappingProxyType
+        self, hass: HomeAssistantType, config_data: Mapping
     ) -> None:
         """Set up MQTT or serial/tcp-ip receiver."""
-        if ConnectionType.MQTT == ConnectionType(config[CONF_CONNECTION_TYPE]):
+        if ConnectionType.MQTT == ConnectionType(config_data[CONF_CONNECTION_TYPE]):
             self._mqtt_unsubscribe = await async_setup_meter_mqtt_subscriptions(
-                hass, config[CONF_CONNECTION_CONFIG], self.measure_queue
+                hass,
+                config_data[CONF_CONNECTION_CONFIG],
+                self.measure_queue,
             )
         else:
             manager = setup_meter_connection(
-                hass.loop, config[CONF_CONNECTION_CONFIG], self.measure_queue
+                hass.loop,
+                config_data[CONF_CONNECTION_CONFIG],
+                self.measure_queue,
             )
             hass.loop.create_task(manager.connect_loop())
             self._connection_manager = manager
@@ -61,7 +62,7 @@ class AmsHanIntegration:
         """Add listener to be removed on unload."""
         self._listeners.append(listener_unsubscribe)
 
-    def add_task(self, task: Task) -> None:
+    def add_task(self, task: asyncio.Task) -> None:
         """Add task to be cancelled on close/unload."""
         self._tasks.append(task)
 
@@ -75,7 +76,7 @@ class AmsHanIntegration:
 
         for task in self._tasks:
             task.cancel()
-        await gather(*self._tasks)
+        await asyncio.gather(*self._tasks)
         self._tasks.clear()
 
     def stop_receive(self) -> None:
@@ -99,23 +100,27 @@ async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
-    ctx = AmsHanIntegration()
+    integration = AmsHanIntegration()
 
-    await ctx.async_setup_receiver(hass, config_entry.data)
+    await integration.async_setup_receiver(hass, config_entry.data)
 
     # Listen for Home Assistant stop event
     @callback
     async def on_hass_stop(event: EventType) -> None:
         _LOGGER.debug("%s received. Close down integration.", event.event_type)
-        ctx.stop_receive()
+        integration.stop_receive()
 
-    ctx.add_listener(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop))
+    integration.add_listener(
+        hass.bus.async_listen_once(ha_const.EVENT_HOMEASSISTANT_STOP, on_hass_stop)
+    )
 
     # Listen for config entry changes and reload when changed.
-    ctx.add_listener(config_entry.add_update_listener(async_config_entry_changed))
+    integration.add_listener(
+        config_entry.add_update_listener(async_config_entry_changed)
+    )
 
     hass.config_entries.async_setup_platforms(config_entry, [PLATFORM_TYPE])
-    hass.data[DOMAIN][config_entry.entry_id] = ctx
+    hass.data[DOMAIN][config_entry.entry_id] = integration
 
     return True
 

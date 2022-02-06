@@ -1,16 +1,16 @@
 """amshan platform."""
+
 from __future__ import annotations
 
-from asyncio import CancelledError, Queue
+import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+import datetime as dt
 import logging
-from math import floor
+import math
 from typing import Callable, Iterable, cast
 
-from han.autodecoder import AutoDecoder
-from han.common import MeterMessageBase
-import han.obis_map as obis_map
+from han import autodecoder, common as han_type, obis_map
+from homeassistant import const as ha_const
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -18,27 +18,14 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    ELECTRIC_CURRENT_AMPERE,
-    ELECTRIC_POTENTIAL_VOLT,
-    ENERGY_KILO_WATT_HOUR,
-    POWER_VOLT_AMPERE_REACTIVE,
-    POWER_WATT,
-    STATE_UNKNOWN,
-)
 from homeassistant.core import State, callback
-from homeassistant.helpers.dispatcher import (
-    async_dispatcher_connect,
-    async_dispatcher_send,
-)
-from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers import dispatcher, entity, restore_state
 from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
 from . import AmsHanIntegration
+from .amshancfg import CONF_OPTIONS_SCALE_FACTOR
 from .common import MeterInfo, StopMessage
-from .config import CONF_OPTIONS_SCALE_FACTOR
 from .const import (
     DOMAIN,
     ICON_COUNTER,
@@ -74,32 +61,32 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
     for sensor in [
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_ID,
-            entity_category=EntityCategory.DIAGNOSTIC,
+            entity_category=entity.EntityCategory.DIAGNOSTIC,
             name="Meter ID",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_MANUFACTURER,
-            entity_category=EntityCategory.DIAGNOSTIC,
+            entity_category=entity.EntityCategory.DIAGNOSTIC,
             name="Meter manufacturer",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_TYPE,
-            entity_category=EntityCategory.DIAGNOSTIC,
+            entity_category=entity.EntityCategory.DIAGNOSTIC,
             name="Meter type",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_OBIS_LIST_VER_ID,
-            entity_category=EntityCategory.DIAGNOSTIC,
+            entity_category=entity.EntityCategory.DIAGNOSTIC,
             name="OBIS List version identifier",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=POWER_WATT,
+            native_unit_of_measurement=ha_const.POWER_WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Active power import (Q1+Q4)",
@@ -109,7 +96,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=POWER_WATT,
+            native_unit_of_measurement=ha_const.POWER_WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Active power export (Q2+Q3)",
@@ -119,7 +106,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Reactive power import (Q1+Q2)",
@@ -129,7 +116,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Reactive power export (Q3+Q4)",
@@ -139,7 +126,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L1,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_CURRENT,
             name="Current phase L1",
@@ -149,7 +136,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L2,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L2",
             decimals=3,
@@ -158,7 +145,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L3,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L3",
             decimals=3,
@@ -167,7 +154,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L1,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L1 voltage",
@@ -177,7 +164,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L2,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L2 voltage",
@@ -187,7 +174,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L3,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L3 voltage",
@@ -197,7 +184,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_IMPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=ha_const.ENERGY_KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
             name="Cumulative hourly active import energy (A+) (Q1+Q4)",
@@ -209,7 +196,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_EXPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=ha_const.ENERGY_KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
             name="Cumulative hourly active export energy (A-) (Q2+Q3)",
@@ -247,16 +234,16 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
 async def async_setup_entry(
     hass: HomeAssistantType,
     config_entry: ConfigEntry,
-    async_add_entities: Callable[[list[Entity], bool], None],
+    async_add_entities: Callable[[list[entity.Entity], bool], None],
 ):
     """Add hantest sensor platform from a config_entry."""
-    ctx: AmsHanIntegration = hass.data[DOMAIN][config_entry.entry_id]
+    integration: AmsHanIntegration = hass.data[DOMAIN][config_entry.entry_id]
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
-        hass, config_entry, async_add_entities, ctx.measure_queue
+        hass, config_entry, async_add_entities, integration.measure_queue
     )
 
     # start processing loop task
-    ctx.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
+    integration.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
 
 
 class AmsHanEntity(SensorEntity):
@@ -265,7 +252,7 @@ class AmsHanEntity(SensorEntity):
     def __init__(
         self,
         entity_description: AmsHanSensorEntityDescription,
-        measure_data: dict[str, str | int | float | datetime],
+        measure_data: dict[str, str | int | float | dt.datetime],
         new_measure_signal_name: str,
         scale_factor: float,
         meter_info: MeterInfo,
@@ -290,7 +277,9 @@ class AmsHanEntity(SensorEntity):
             meter_info if meter_info else MeterInfo.from_measure_data(measure_data)
         )
         self._scale_factor = (
-            int(scale_factor) if scale_factor == floor(scale_factor) else scale_factor
+            int(scale_factor)
+            if scale_factor == math.floor(scale_factor)
+            else scale_factor
         )
         self.entity_id = (
             f"sensor.{self._meter_info.manufacturer}_{entity_description.key}".lower()
@@ -306,7 +295,7 @@ class AmsHanEntity(SensorEntity):
 
         @callback
         def on_new_measure(
-            measure_data: dict[str, str | int | float | datetime]
+            measure_data: dict[str, str | int | float | dt.datetime]
         ) -> None:
             if self.measure_id in measure_data:
                 self._measure_data = measure_data
@@ -319,7 +308,7 @@ class AmsHanEntity(SensorEntity):
                 self.async_write_ha_state()
 
         # subscribe to update events for this meter
-        self._async_remove_dispatcher = async_dispatcher_connect(
+        self._async_remove_dispatcher = dispatcher.async_dispatcher_connect(
             cast(HomeAssistantType, self.hass),
             self._new_measure_signal_name,
             on_new_measure,
@@ -356,7 +345,7 @@ class AmsHanEntity(SensorEntity):
         if isinstance(measure, str):
             return measure
 
-        if isinstance(measure, datetime):
+        if isinstance(measure, dt.datetime):
             return measure.isoformat()
 
         if self.entity_description.scale is not None:
@@ -375,9 +364,9 @@ class AmsHanEntity(SensorEntity):
         return measure
 
     @property
-    def device_info(self) -> DeviceInfo:
+    def device_info(self) -> entity.DeviceInfo:
         """Return device specific attributes."""
-        return DeviceInfo(
+        return entity.DeviceInfo(
             name="HAN port",
             identifiers={(DOMAIN, self._meter_info.unique_id)},
             manufacturer=self._meter_info.manufacturer,
@@ -386,13 +375,13 @@ class AmsHanEntity(SensorEntity):
         )
 
 
-class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
+class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
     """Representation of a AmsHan sensor each hour."""
 
     def __init__(
         self,
         entity_description: AmsHanSensorEntityDescription,
-        measure_data: dict[str, str | int | float | datetime],
+        measure_data: dict[str, str | int | float | dt.datetime],
         new_measure_signal_name: str,
         scale_factor: float,
         meter_info: MeterInfo,
@@ -412,7 +401,7 @@ class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
         self._restored_last_state = await self.async_get_last_state()
         if (
             self._restored_last_state
-            and self._restored_last_state.state == STATE_UNKNOWN
+            and self._restored_last_state.state == ha_const.STATE_UNKNOWN
         ):
             _LOGGER.debug(
                 "Restored state from %s for sensor %s is unknown. No need to keep.",
@@ -455,7 +444,7 @@ class AmsHanHourlyEntity(AmsHanEntity, RestoreEntity):
         time_since_update = now - self._restored_last_state.last_updated
         return (
             now.hour == self._restored_last_state.last_updated.hour
-            and time_since_update < timedelta(hours=1)
+            and time_since_update < dt.timedelta(hours=1)
         )
 
 
@@ -466,14 +455,14 @@ class MeterMeasureProcessor:
         self,
         hass: HomeAssistantType,
         config_entry: ConfigEntry,
-        async_add_entities: Callable[[list[Entity], bool], None],
-        measure_queue: Queue[MeterMessageBase],
+        async_add_entities: Callable[[list[entity.Entity], bool], None],
+        measure_queue: asyncio.Queue[han_type.MeterMessageBase],
     ) -> None:
         """Initialize MeterMeasureProcessor class."""
         self._hass = hass
         self._async_add_entities = async_add_entities
         self._measure_queue = measure_queue
-        self._decoder: AutoDecoder = AutoDecoder()
+        self._decoder: autodecoder.AutoDecoder = autodecoder.AutoDecoder()
         self._known_measures: set[str] = set()
         self._new_measure_signal_name: str | None = None
         self._scale_factor = float(
@@ -492,7 +481,7 @@ class MeterMeasureProcessor:
 
                 _LOGGER.debug("Received meter measures: %s", message)
                 self._update_entities(message)
-            except CancelledError:
+            except asyncio.CancelledError:
                 _LOGGER.debug("Processing loop cancelled.")
                 return
             except Exception:  # pylint: disable=broad-except
@@ -500,7 +489,7 @@ class MeterMeasureProcessor:
 
     async def _async_decode_next_valid_message(
         self,
-    ) -> dict[str, str | int | float | datetime]:
+    ) -> dict[str, str | int | float | dt.datetime]:
         while True:
             message = await self._measure_queue.get()
             if isinstance(message, StopMessage):
@@ -524,19 +513,19 @@ class MeterMeasureProcessor:
                 )
 
     def _update_entities(
-        self, measure_data: dict[str, str | int | float | datetime]
+        self, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> None:
         self._ensure_entities_are_created(measure_data)
 
         # signal all entities to update with new measure data
         if self._known_measures:
             assert self._new_measure_signal_name is not None
-            async_dispatcher_send(
+            dispatcher.async_dispatcher_send(
                 self._hass, self._new_measure_signal_name, measure_data
             )
 
     def _ensure_entities_are_created(
-        self, measure_data: dict[str, str | int | float | datetime]
+        self, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> None:
         # meter_id is required to register entities (required for unique_id).
         meter_id = measure_data.get(obis_map.FIELD_METER_ID)
@@ -572,7 +561,7 @@ class MeterMeasureProcessor:
         self,
         new_measures: Iterable[str],
         meter_id: str,
-        measure_data: dict[str, str | int | float | datetime],
+        measure_data: dict[str, str | int | float | dt.datetime],
     ) -> list[AmsHanEntity]:
         new_enitities: list[AmsHanEntity] = []
         for measure_id in new_measures:
@@ -585,7 +574,7 @@ class MeterMeasureProcessor:
                     self._meter_info = MeterInfo.from_measure_data(measure_data)
 
                 entity_description = SENSOR_TYPES[measure_id]
-                entity = (
+                new_entity = (
                     AmsHanHourlyEntity(
                         entity_description,
                         measure_data,
@@ -602,7 +591,7 @@ class MeterMeasureProcessor:
                         self._meter_info,
                     )
                 )
-                new_enitities.append(cast(AmsHanEntity, entity))
+                new_enitities.append(cast(AmsHanEntity, new_entity))
             else:
                 _LOGGER.debug("Ignore unhandled measure_id %s", measure_id)
         return new_enitities

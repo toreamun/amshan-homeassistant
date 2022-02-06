@@ -1,32 +1,22 @@
 """Config flow for AMS HAN meter integration."""
 from __future__ import annotations
 
-from asyncio import AbstractEventLoop, CancelledError, Queue
+import asyncio
 import logging
 import socket
 from typing import Any, cast
 
-from async_timeout import timeout
-from han import obis_map
-from han.autodecoder import AutoDecoder
-from han.common import MeterMessageBase
+import async_timeout
+from han import autodecoder, common as han_type, obis_map
+from homeassistant import config_entries
 from homeassistant.components import mqtt
-from homeassistant.components.mqtt import DOMAIN as MQTT_DOMAIN, valid_subscribe_topic
-from homeassistant.components.mqtt.models import ReceiveMessage
-from homeassistant.config_entries import (
-    CONN_CLASS_LOCAL_PUSH,
-    ConfigEntry,
-    ConfigFlow,
-    OptionsFlow,
-)
 from homeassistant.core import callback
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import HomeAssistantType
-from serial import SerialException
+import serial
 import voluptuous as vol
 
-from .common import ConnectionType, MeterInfo
-from .config import (
+from .amshancfg import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
@@ -45,9 +35,9 @@ from .config import (
     SERIAL_SCHEMA,
     TCP_SCHEMA,
 )
-from .conman import get_connection_factory
-from .const import DOMAIN  # pylint:disable=unused-import
-from .hass_mqtt import get_meter_message
+from .common import ConnectionType, MeterInfo
+from .const import DOMAIN  # pylint: disable=unused-import
+from .metercon import get_connection_factory, get_meter_message
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +46,10 @@ DATA_SCHEMA_SELECT_DEVICE_TYPE = vol.Schema(
 )
 
 DATA_SCHEMA_NETWORK_DATA = vol.Schema(
-    {vol.Required(CONF_TCP_HOST): str, vol.Required(CONF_TCP_PORT): int}
+    {
+        vol.Required(CONF_TCP_HOST): str,
+        vol.Required(CONF_TCP_PORT): int,
+    }
 )
 
 DATA_SCHEMA_SERIAL_DATA = vol.Schema(
@@ -101,11 +94,11 @@ VALIDATION_ERROR_MQTT_NOT_AVAILAVLE = "mqtt_not_available"
 VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC = "invalid_subscribe_topic"
 
 
-class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
+class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for amshan."""
 
     VERSION = 3
-    CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:
         """Initialize AmsHanConfigFlow class."""
@@ -113,7 +106,9 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
         """Get options flow handler."""
         return AmsHanOptionsFlowHandler(config_entry)
 
@@ -157,7 +152,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=(
                         f"{meter_info.manufacturer} {meter_info.type} "
-                        f"connected to {user_input[CONF_SERIAL_PORT]}"
+                        f"connected to {user_input[ CONF_SERIAL_PORT]}"
                     ),
                     data={
                         CONF_CONNECTION_TYPE: ConnectionType.SERIAL.value,
@@ -188,8 +183,8 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=(
                         f"{meter_info.manufacturer} {meter_info.type} "
-                        f"connected to {user_input[CONF_TCP_HOST]} "
-                        f"port {user_input[CONF_TCP_PORT]}"
+                        f"connected to {user_input[ CONF_TCP_HOST]} "
+                        f"port {user_input[ CONF_TCP_PORT]}"
                     ),
                     data={
                         CONF_CONNECTION_TYPE: ConnectionType.NETWORK.value,
@@ -232,7 +227,7 @@ class AmsHanConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     def _is_mqtt_available(self) -> bool:
-        return MQTT_DOMAIN in self.hass.config.components
+        return mqtt.DOMAIN in self.hass.config.components
 
 
 class ConfigFlowValidation:
@@ -251,10 +246,10 @@ class ConfigFlowValidation:
         self.errors[VALIDATION_ERROR_BASE] = error_key
 
     async def _async_get_meter_info(
-        self, measure_queue: Queue[MeterMessageBase]
+        self, measure_queue: asyncio.Queue[han_type.MeterMessageBase]
     ) -> MeterInfo:
         """Decode meter data stream and return meter information if available."""
-        decoder = AutoDecoder()
+        decoder = autodecoder.AutoDecoder()
 
         for _ in range(MAX_FRAME_SEARCH_COUNT):
             measure = await self._async_try_get_message(measure_queue)
@@ -272,22 +267,22 @@ class ConfigFlowValidation:
         raise TimeoutError()
 
     async def _async_try_get_message(
-        self, measure_queue: "Queue[MeterMessageBase]"
-    ) -> MeterMessageBase | None:
-        async with timeout(MAX_FRAME_WAIT_TIME):
+        self, measure_queue: asyncio.Queue[han_type.MeterMessageBase]
+    ) -> han_type.MeterMessageBase | None:
+        async with async_timeout.timeout(MAX_FRAME_WAIT_TIME):
             try:
                 return await measure_queue.get()
-            except (TimeoutError, CancelledError):
+            except (TimeoutError, asyncio.CancelledError):
                 _LOGGER.debug(
                     "Timout waiting %d seconds for meter measure.", MAX_FRAME_WAIT_TIME
                 )
                 return None
 
     async def _async_validate_device_connection(
-        self, loop: AbstractEventLoop, user_input: dict[str, Any]
+        self, loop: asyncio.AbstractEventLoop, user_input: dict[str, Any]
     ) -> MeterInfo | None:
         """Try to connect and get meter information to validate connection data."""
-        measure_queue: Queue[MeterMessageBase] = Queue()
+        measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()
         connection_factory = get_connection_factory(loop, user_input, measure_queue)
 
         transport = None
@@ -298,7 +293,7 @@ class ConfigFlowValidation:
                 _LOGGER.debug("Timeout when connecting to HAN-port: %s", ex)
                 self._set_base_error(VALIDATION_ERROR_TIMEOUT_CONNECT)
                 return None
-            except SerialException as ex:
+            except serial.SerialException as ex:
                 if ex.errno == 2:
                     # No such file or directory
                     self._set_base_error(VALIDATION_ERROR_SERIAL_EXCEPTION_ERRNO_2)
@@ -328,10 +323,10 @@ class ConfigFlowValidation:
     async def _async_validate_mqtt_connection(
         self, hass: HomeAssistantType, user_input: dict[str, Any]
     ) -> MeterInfo | None:
-        measure_queue: Queue[MeterMessageBase] = Queue()
+        measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()
 
         @callback
-        def message_received(mqtt_message: ReceiveMessage) -> None:
+        def message_received(mqtt_message: mqtt.models.ReceiveMessage) -> None:
             """Handle new MQTT messages."""
             meter_message = get_meter_message(mqtt_message)
             if meter_message:
@@ -356,7 +351,7 @@ class ConfigFlowValidation:
                 ubsubscribe()
 
     async def _async_validate_host_address(
-        self, loop: AbstractEventLoop, user_input: dict[str, Any]
+        self, loop: asyncio.AbstractEventLoop, user_input: dict[str, Any]
     ) -> None:
         try:
             await loop.getaddrinfo(
@@ -374,7 +369,7 @@ class ConfigFlowValidation:
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
         for topic in topics:
             try:
-                valid_subscribe_topic(topic)
+                mqtt.valid_subscribe_topic(topic)
             except vol.Invalid:
                 self.errors[
                     CONF_MQTT_TOPICS
@@ -433,7 +428,7 @@ class ConfigFlowValidation:
         return None
 
 
-class AmsHanOptionsFlowHandler(OptionsFlow):
+class AmsHanOptionsFlowHandler(config_entries.OptionsFlow):
     """Config flow options handler."""
 
     def __init__(self, config_entry) -> None:
