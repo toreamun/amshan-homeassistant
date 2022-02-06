@@ -34,7 +34,7 @@ class AmsHanIntegration:
     def __init__(self) -> None:
         """Initialize AmsHanIntegration."""
         self._connection_manager: meter_connection.ConnectionManager | None = None
-        self._mqtt_unsubscribe: CALLBACK_TYPE
+        self._mqtt_unsubscribe: CALLBACK_TYPE | None = None
         self._listeners: list[CALLBACK_TYPE] = []
         self._tasks: list[asyncio.Task] = []
         self.measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()

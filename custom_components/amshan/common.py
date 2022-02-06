@@ -10,7 +10,9 @@ from han import common as han_type, obis_map
 
 _METER_DATA_INFO_KEYS = [
     obis_map.FIELD_METER_MANUFACTURER,
+    obis_map.FIELD_METER_MANUFACTURER_ID,
     obis_map.FIELD_METER_TYPE,
+    obis_map.FIELD_METER_TYPE_ID,
     obis_map.FIELD_OBIS_LIST_VER_ID,
     obis_map.FIELD_METER_ID,
 ]
@@ -20,22 +22,26 @@ _METER_DATA_INFO_KEYS = [
 class MeterInfo:
     """Info about meter."""
 
-    manufacturer: str
-    type: str
+    manufacturer: str | None
+    manufacturer_id: str | None
+    type: str | None
+    type_id: str | None
     list_version_id: str
-    meter_id: str
+    meter_id: str | None
 
     @property
-    def unique_id(self) -> str:
+    def unique_id(self) -> str | None:
         """Meter unique id."""
-        return f"{self.manufacturer}-{self.type}-{self.meter_id}".lower()
+        if self.meter_id:
+            return f"{self.manufacturer}-{self.type}-{self.meter_id}".lower()
+        return None
 
     @classmethod
     def from_measure_data(
         cls, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> MeterInfo:
         """Create MeterInfo from measure_data dictionary."""
-        return cls(*[cast(str, measure_data[key]) for key in _METER_DATA_INFO_KEYS])
+        return cls(*[cast(str, measure_data.get(key)) for key in _METER_DATA_INFO_KEYS])
 
 
 class ConnectionType(Enum):

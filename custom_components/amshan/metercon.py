@@ -9,6 +9,7 @@ from typing import Any, Callable, Mapping
 
 from han import (
     common as han_type,
+    dlde,
     hdlc,
     meter_connection,
     serial_connection_factory as han_serial,
@@ -121,7 +122,24 @@ def get_meter_message(
     # Try first to read as HDLC-frame.
     message = _try_read_meter_message(mqtt_message.payload)
     if message is not None:
-        if message.is_good_ffc and message.is_expected_length:
+        if message.message_type == han_type.MeterMessageType.P1:
+            if message.is_valid:
+                _LOGGER.debug(
+                    "Got valid P1 message from topic %s: %s",
+                    mqtt_message.topic,
+                    mqtt_message.payload.hex(),
+                )
+                return message
+
+            _LOGGER.debug(
+                "Got invalid P1 message from topic %s: %s",
+                mqtt_message.topic,
+                mqtt_message.payload.hex(),
+            )
+
+            return None
+
+        if message.is_valid:
             if message.payload is not None:
                 _LOGGER.debug(
                     "Got valid frame of expected length with correct checksum from topic %s: %s",
@@ -137,9 +155,7 @@ def get_meter_message(
             )
 
         _LOGGER.debug(
-            "Got invalid frame (ffc is %s and expected length is %s) from topic %s: %s",
-            message.is_good_ffc,
-            message.is_expected_length,
+            "Got invalid frame from topic %s: %s",
             mqtt_message.topic,
             mqtt_message.payload.hex(),
         )
@@ -165,8 +181,14 @@ def get_meter_message(
     return han_type.DlmsMessage(mqtt_message.payload)
 
 
-def _try_read_meter_message(payload: bytes) -> hdlc.HdlcFrame | None:
+def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
     """Try to parse HDLC-frame from payload."""
+    if payload.startswith(b"/"):
+        try:
+            return dlde.DataReadout(payload)
+        except ValueError as ex:
+            _LOGGER.debug("Starts with '/', but not a valid P1 message: %s", ex)
+
     frame_reader = hdlc.HdlcFrameReader(False)
 
     # Reader expects flag sequence in start and end.

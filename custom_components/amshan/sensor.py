@@ -256,15 +256,22 @@ class AmsHanEntity(SensorEntity):
         new_measure_signal_name: str,
         scale_factor: float,
         meter_info: MeterInfo,
+        config_entry_id: str,
     ) -> None:
         """Initialize AmsHanEntity class."""
         if entity_description is None:
             raise TypeError("measure_id is required")
         if measure_data is None:
             raise TypeError("measure_data is required")
-        if obis_map.FIELD_METER_ID not in measure_data:
+        if (
+            obis_map.FIELD_METER_ID not in measure_data
+            and obis_map.FIELD_METER_MANUFACTURER_ID not in measure_data
+        ):
             raise ValueError(
-                f"Expected element {obis_map.FIELD_METER_ID} not in measure_data."
+                (
+                    f"Expected element {obis_map.FIELD_METER_ID} "
+                    f"{obis_map.FIELD_METER_MANUFACTURER_ID} not in measure_data."
+                )
             )
         if new_measure_signal_name is None:
             raise TypeError("new_measure_signal_name is required")
@@ -281,9 +288,14 @@ class AmsHanEntity(SensorEntity):
             if scale_factor == math.floor(scale_factor)
             else scale_factor
         )
-        self.entity_id = (
-            f"sensor.{self._meter_info.manufacturer}_{entity_description.key}".lower()
+        self._config_entry_id = config_entry_id
+
+        manufacturer = (
+            self._meter_info.manufacturer
+            if self._meter_info.manufacturer
+            else self._meter_info.manufacturer_id
         )
+        self.entity_id = f"sensor.{manufacturer}_{entity_description.key}".lower()
 
     @staticmethod
     def is_measure_id_supported(measure_id: str) -> bool:
@@ -332,7 +344,13 @@ class AmsHanEntity(SensorEntity):
     @property
     def unique_id(self) -> str | None:
         """Return the unique id."""
-        return f"{self._meter_info.manufacturer}-{self._meter_info.meter_id}-{self.measure_id}"
+        if self._meter_info.meter_id:
+            return f"{self._meter_info.manufacturer}-{self._meter_info.meter_id}-{self.measure_id}"
+        return (
+            f"CEID-{self._config_entry_id}-"
+            f"{self._meter_info.manufacturer_id}{self._meter_info.type_id}-"
+            f"{self.measure_id}"
+        )
 
     @property
     def native_value(self) -> None | str | int | float:
@@ -366,11 +384,28 @@ class AmsHanEntity(SensorEntity):
     @property
     def device_info(self) -> entity.DeviceInfo:
         """Return device specific attributes."""
+        manufacturer = (
+            self._meter_info.manufacturer
+            if self._meter_info.manufacturer
+            else self._meter_info.manufacturer_id
+        )
+
+        meter_type = (
+            self._meter_info.type if self._meter_info.type else self._meter_info.type_id
+        )
+
         return entity.DeviceInfo(
-            name="HAN port",
-            identifiers={(DOMAIN, self._meter_info.unique_id)},
-            manufacturer=self._meter_info.manufacturer,
-            model=self._meter_info.type,
+            name=f"{manufacturer} {meter_type}",
+            identifiers={
+                (
+                    DOMAIN,
+                    self._meter_info.unique_id
+                    if self._meter_info.unique_id
+                    else self._config_entry_id,
+                )
+            },
+            manufacturer=manufacturer,
+            model=meter_type,
             sw_version=self._meter_info.list_version_id,
         )
 
@@ -385,6 +420,7 @@ class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
         new_measure_signal_name: str,
         scale_factor: float,
         meter_info: MeterInfo,
+        config_entry_id: str,
     ) -> None:
         """Initialize AmsHanHourlyEntity class."""
         super().__init__(
@@ -393,6 +429,7 @@ class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
             new_measure_signal_name,
             scale_factor,
             meter_info,
+            config_entry_id,
         )
         self._restored_last_state: State | None = None
 
@@ -468,6 +505,7 @@ class MeterMeasureProcessor:
         self._scale_factor = float(
             config_entry.options.get(CONF_OPTIONS_SCALE_FACTOR, 1)
         )
+        self._config_entry_id: str = config_entry.entry_id
         self._meter_info: MeterInfo | None = None
 
     async def async_process_measures_loop(self) -> None:
@@ -527,9 +565,10 @@ class MeterMeasureProcessor:
     def _ensure_entities_are_created(
         self, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> None:
-        # meter_id is required to register entities (required for unique_id).
+        # meter_id or manufacturer_id is required to register entities (required by unique_id).
         meter_id = measure_data.get(obis_map.FIELD_METER_ID)
-        if meter_id:
+        manufacturer_id = measure_data.get(obis_map.FIELD_METER_MANUFACTURER_ID)
+        if meter_id or manufacturer_id:
             missing_measures = measure_data.keys() - self._known_measures
 
             if missing_measures:
@@ -581,6 +620,7 @@ class MeterMeasureProcessor:
                         self._new_measure_signal_name,
                         self._scale_factor,
                         self._meter_info,
+                        self._config_entry_id,
                     )
                     if entity_description.is_hour_sensor
                     else AmsHanEntity(
@@ -589,6 +629,7 @@ class MeterMeasureProcessor:
                         self._new_measure_signal_name,
                         self._scale_factor,
                         self._meter_info,
+                        self._config_entry_id,
                     )
                 )
                 new_enitities.append(cast(AmsHanEntity, new_entity))

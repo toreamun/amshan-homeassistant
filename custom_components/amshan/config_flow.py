@@ -141,7 +141,9 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the network connection step."""
         if user_input:
-            entry_result = self._try_create_entry(ConnectionType.SERIAL, user_input)
+            entry_result = await self._async_try_create_entry(
+                ConnectionType.SERIAL, user_input
+            )
             if entry_result:
                 return entry_result
 
@@ -156,7 +158,9 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the network connection step."""
         if user_input:
-            entry_result = self._try_create_entry(ConnectionType.NETWORK, user_input)
+            entry_result = await self._async_try_create_entry(
+                ConnectionType.NETWORK, user_input
+            )
             if entry_result:
                 return entry_result
 
@@ -171,7 +175,9 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle MQTT step."""
         if user_input:
-            entry_result = self._try_create_entry(ConnectionType.MQTT, user_input)
+            entry_result = await self._async_try_create_entry(
+                ConnectionType.MQTT, user_input
+            )
             if entry_result:
                 return entry_result
 
@@ -181,7 +187,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._validator.errors,
         )
 
-    async def _try_create_entry(
+    async def _async_try_create_entry(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
     ) -> FlowResult | None:
         meter_info = await self._validator.async_validate_connection_input(
@@ -191,10 +197,19 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         if not self._validator.errors and meter_info:
-            await self.async_set_unique_id(meter_info.unique_id)
-            self._abort_if_unique_id_configured()
+            if meter_info.unique_id:
+                await self.async_set_unique_id(meter_info.unique_id)
+                self._abort_if_unique_id_configured()
+
+            manufacturer = (
+                meter_info.manufacturer
+                if meter_info.manufacturer
+                else meter_info.manufacturer_id
+            )
+            meter_type = meter_info.type if meter_info.type else meter_info.type_id
+
             return self.async_create_entry(
-                title=f"{meter_info.manufacturer} {meter_info.type}",
+                title=f"{manufacturer} {meter_type} ({connection_type.name.lower()})",
                 data={
                     CONF_CONNECTION_TYPE: connection_type.value,
                     CONF_CONNECTION_CONFIG: user_input,
@@ -236,7 +251,7 @@ class ConfigFlowValidation:
                     if (
                         obis_map.FIELD_METER_ID in decoded_measure
                         and obis_map.FIELD_METER_MANUFACTURER in decoded_measure
-                    ):
+                    ) or (obis_map.FIELD_METER_MANUFACTURER_ID in decoded_measure):
                         return MeterInfo.from_measure_data(decoded_measure)
 
                     _LOGGER.debug("Decoded measure data is missing required info.")
