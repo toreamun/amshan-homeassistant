@@ -1,0 +1,61 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Enheten är redan konfigurerad"
+        },
+        "error": {
+            "cannot_connect": "Kunde inte ansluta, försök igen senare",
+            "timeout_connect": "Anslutningen tog för lång tid",
+            "timeout_read_messages": "Utläsning av data tog för lång tid",
+            "serial_exception_general": "Kunde inte upprätta kontakt med serieporten. Se loggen för mer information",
+            "serial_exception_errno_2": "Seriell enhet hittades inte",
+            "unknown": "Oväntat fel",
+            "voluptuous_host": "Måste vara ett giltigt värdnamn eller IP-adress",
+            "voluptuous_port": "Måste vara ett giltigt portnummer (mellan 0 och 65535)",
+            "mqtt_not_available": "Kontrollera att MQTT integration är installerad"
+        },
+        "step": {
+            "network_connection": {
+                "data": {
+                    "host": "Värdadress (namn eller IP)",
+                    "port": "TCP/IP portnummer"
+                },
+                "title": "Anslut till nätverksvärd"
+            },
+            "serial_connection": {
+                "data": {
+                    "baudrate": "Baud rate som 2400, 9600, eller 115200 etc.",
+                    "bytesize": "Antal databitar",
+                    "dsrdtr": "Slå på (DSR/DTR) flödeskontroll",
+                    "parity": "Paritetskontroll",
+                    "port": "Namn seriell enhet",
+                    "rtscts": "Slå på (RTS/CTS) flödeskontroll",
+                    "stopbits": "Antal stopbitar",
+                    "xonxoff": "Slå på mjukvarubaserad flödeskontroll"
+                },
+                "title": "Anslut till seriell enhet"
+            },
+            "hass_mqtt_connection": {
+                "title": "Prenumera på MQTT topic(s)",
+                "data": {
+                    "mqtt_topics": "MQTT topic(s) kommaseparerat"
+                }
+            },
+            "user": {
+                "data": {
+                    "type": "Anslutningstyp"
+                },
+                "title": "Välj anslutningstyp"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "user": {
+                "data": {
+                    "scale_factor": "Ström, styrka och energi- skalningsfaktor. Standard, och vanligast, är 1."
+                }
+            }
+        }
+    }
+}
