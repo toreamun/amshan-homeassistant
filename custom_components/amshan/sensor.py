@@ -23,10 +23,9 @@ from homeassistant.helpers import dispatcher, entity, restore_state
 from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
-from . import AmsHanIntegration
-from .amshancfg import CONF_OPTIONS_SCALE_FACTOR
-from .common import MeterInfo, StopMessage
+from . import AmsHanIntegration, MeterInfo, StopMessage
 from .const import (
+    CONF_OPTIONS_SCALE_FACTOR,
     DOMAIN,
     ICON_COUNTER,
     ICON_CURRENT,

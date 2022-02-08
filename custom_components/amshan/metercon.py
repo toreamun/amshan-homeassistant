@@ -19,7 +19,7 @@ from homeassistant.components import mqtt
 from homeassistant.core import callback
 from homeassistant.helpers.typing import HomeAssistantType
 
-from .amshancfg import (
+from .const import (
     CONF_MQTT_TOPICS,
     CONF_SERIAL_BAUDRATE,
     CONF_SERIAL_BYTESIZE,

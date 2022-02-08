@@ -17,7 +17,8 @@ from homeassistant.helpers.typing import HomeAssistantType
 import serial
 import voluptuous as vol
 
-from .amshancfg import (
+from . import ConnectionType, MeterInfo
+from .const import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
@@ -32,11 +33,8 @@ from .amshancfg import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
-    HASS_MSMQ_SCHEMA,
-    SERIAL_SCHEMA,
-    TCP_SCHEMA,
+    HOSTNAME_IP4_IP6_REGEX,
 )
-from .common import ConnectionType, MeterInfo
 from .const import DOMAIN  # pylint: disable=unused-import
 from .metercon import get_connection_factory, get_meter_message
 
@@ -46,6 +44,13 @@ DATA_SCHEMA_SELECT_DEVICE_TYPE = vol.Schema(
     {vol.Required("type"): vol.In(["serial", "network", "MQTT"])}
 )
 
+TCP_SCHEMA_DICT = {
+    vol.Required(CONF_TCP_HOST): vol.Match(
+        HOSTNAME_IP4_IP6_REGEX, msg="Must be a valid hostname or an IP address."
+    ),
+    vol.Required(CONF_TCP_PORT): vol.Range(0, 65535),
+}
+TCP_SCHEMA = vol.Schema(TCP_SCHEMA_DICT)
 DATA_SCHEMA_NETWORK_DATA = vol.Schema(
     {
         vol.Required(CONF_TCP_HOST): str,
@@ -53,6 +58,17 @@ DATA_SCHEMA_NETWORK_DATA = vol.Schema(
     }
 )
 
+SERIAL_SCHEMA_DICT = {
+    vol.Required(CONF_SERIAL_PORT): cv.string,
+    vol.Optional(CONF_SERIAL_BAUDRATE, default=2400): cv.positive_int,
+    vol.Optional(CONF_SERIAL_PARITY, default="N"): vol.In(["N", "E", "O"]),
+    vol.Optional(CONF_SERIAL_BYTESIZE, default=8): vol.In([5, 6, 7, 8]),
+    vol.Optional(CONF_SERIAL_STOPBITS, default="1"): vol.In([1, 1.5, 2]),
+    vol.Optional(CONF_SERIAL_XONXOFF, default=False): cv.boolean,
+    vol.Optional(CONF_SERIAL_RTSCTS, default=False): cv.boolean,
+    vol.Optional(CONF_SERIAL_DSRDTR, default=False): cv.boolean,
+}
+SERIAL_SCHEMA = vol.Schema(SERIAL_SCHEMA_DICT)
 DATA_SCHEMA_SERIAL_DATA = vol.Schema(
     {
         vol.Required(CONF_SERIAL_PORT): str,
@@ -66,11 +82,17 @@ DATA_SCHEMA_SERIAL_DATA = vol.Schema(
     }
 )
 
+
+HASS_MSMQ_SCHEMA_DICT = {
+    vol.Required(CONF_MQTT_TOPICS): cv.string,
+}
+HASS_MSMQ_SCHEMA = vol.Schema(HASS_MSMQ_SCHEMA_DICT)
 DATA_SCHEMA_MQTT_DATA = vol.Schema(
     {
         vol.Required(CONF_MQTT_TOPICS): str,
     }
 )
+
 
 # max number of frames to search for needed meter information
 # Some meters sends 3 frames containing minimal of data between larger frames. Skip them.
