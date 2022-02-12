@@ -12,7 +12,7 @@
 
 # AMS HAN Home Assistant integrasjon
 
-**Home Assistant integrasjon for norske og svenske ([beta](#beta-support)) strømmålere. Både DLMS og P1 ([beta](#beta-support)) fortmater støttes. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
+**Home Assistant integrasjon for norske og svenske strømmålere. Både DLMS og P1 fortmater støttes. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
 
 Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype).
 
@@ -149,7 +149,3 @@ connection: &han
       kickolduser: true
    connector: serialdev,/dev/ttyUSB0,2400e81,local
 ```
-
-# Beta support
-
-Release 2022.1.8-beta lägger till betastöd för svenska mätare som använder COSEM/DLMS meddelandeformat. Release 2022.2.2-beta lägger till betastöd for P1 meddelandeformat. Observera att vissa detaljer inte visas i den aktuella versionen. Syfte är att lägga till stöd för alla meddelandeformat med alla detaljer. Eventuella frågor och fel kan rapporteras och diskuteras [här(issue #24)](https://github.com/toreamun/amshan-homeassistant/issues/24). Hjälp behövs för att översätta [en.json] (https://github.com/toreamun/amshan-homeassistant/blob/master/custom_components/amshan/translations/en.json). Kontakta gärna eller gör en pull-förfrågan om du vill hjälpa till med det.
