@@ -10,9 +10,11 @@
       "serial_exception_general": "Kunne ikke åpne serieport. Se logg for mer informasjon",
       "serial_exception_errno_2": "Kunne ikke finne serieport",
       "unknown": "Ukjent feil",
+      "host_check": "Må være et gyldig DNS-navn eller en IP-adresse",
       "voluptuous_host": "Må være et gyldig DNS-navn eller en IP-adresse",
       "voluptuous_port": "Må være et gyldig portnummer (mellom 0 og 65535)",
-      "mqtt_not_available": "Vennligst sjekk at MQTT integrasjonen er installert"
+      "mqtt_not_available": "Vennligst sjekk at MQTT integrasjonen er installert",
+      "invalid_subscribe_topic": "Ugyldig emnenavn"
     },
     "step": {
       "network_connection": {

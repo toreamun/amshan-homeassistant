@@ -10,9 +10,11 @@
             "serial_exception_general": "Kunde inte upprätta kontakt med serieporten. Se loggen för mer information",
             "serial_exception_errno_2": "Seriell enhet hittades inte",
             "unknown": "Oväntat fel",
+            "host_check": "Måste vara ett giltigt värdnamn eller IP-adress",
             "voluptuous_host": "Måste vara ett giltigt värdnamn eller IP-adress",
             "voluptuous_port": "Måste vara ett giltigt portnummer (mellan 0 och 65535)",
-            "mqtt_not_available": "Kontrollera att MQTT integration är installerad"
+            "mqtt_not_available": "Kontrollera att MQTT integration är installerad",
+            "invalid_subscribe_topic": "Ogiltigt ämnesnamn"
         },
         "step": {
             "network_connection": {
