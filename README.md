@@ -32,7 +32,7 @@ Sensorene for spenning og forbruk kan man f.eks selv sette opp i Home Assistant 
 
 [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) publiserer normalt meldinger fra målerens datastrøm til en MQTT-server i skyen. Man kan sette opp Tibber Pulse til å publisere til et topic på en lokal MQTT-server (f.eks Home Assistant Mosquitto broker Add-On), og sette denne integrasjonen opp til å lytte på disse meldingene. Merk at man da ikke får målingene i Tibber Appen, ettersom måligene ikke lenger sendes til Tibber sin MQTT-server. [ElWiz har en veiledning](https://github.com/iotux/ElWiz#oppsett-av-pulse) til å sette opp MQTT på Tibber Pulse.
 
-Hvis du bestemmer deg for å kjøpe en Tibber Pulse for å benytte med denne integrasjonen er det fint om du benytter denne [invitasjonen](https://tibber.com/no/invite/230c1af6) med vevekode `230c1af6`. I skrivende stund gir invitasjonen 500 kr til bruk i nettbutikken hvor du kan kjøpe Tibber Pulse hvis du blir kunde hos dem. Det er selvsagt ingen garanti for at Tibber ikke kommer med firmware endringer som gjør noe med muligheten for å sette opp lokal MQTT.
+Hvis du bestemmer deg for å kjøpe en Tibber Pulse for å benytte med denne integrasjonen er det fint om du benytter denne [invitasjonen](https://tibber.com/no/invite/230c1af6) med vervekode `230c1af6`. I skrivende stund gir invitasjonen 500 kr til bruk i nettbutikken hvor du kan kjøpe Tibber Pulse hvis du blir kunde hos dem. Det er selvsagt ingen garanti for at Tibber ikke kommer med firmware endringer som gjør noe med muligheten for å sette opp lokal MQTT.
 
 ## Benytte amsleser.no/AmsToMqttBridge
 
