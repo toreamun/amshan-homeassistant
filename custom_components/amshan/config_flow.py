@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import socket
 from typing import Any, cast
 
@@ -122,8 +123,12 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return entry_result
         else:
             # set defaults
+            port = await self.hass.async_add_executor_job(
+                self._try_get_first_available_serial
+            )
+
             user_input = {
-                CONF_SERIAL_PORT: "",
+                CONF_SERIAL_PORT: port if port else "",
                 CONF_SERIAL_BAUDRATE: 2400,
                 CONF_SERIAL_PARITY: "N",
                 CONF_SERIAL_BYTESIZE: "8",
@@ -276,6 +281,25 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _is_mqtt_available(self) -> bool:
         return mqtt.DOMAIN in self.hass.config.components
+
+    @staticmethod
+    def _try_get_first_available_serial() -> str | None:
+        by_id = "/dev/serial/by-id"
+        if not os.path.isdir(by_id):
+            return None
+
+        for device in (entry.path for entry in os.scandir(by_id) if entry.is_symlink()):
+            try:
+                # Open to test if port is available...
+                port = serial.Serial(device)
+            except serial.SerialException:
+                # It has some error, skip this one
+                continue
+            else:
+                port.close()
+                return device
+
+        return None
 
 
 class ConfigFlowValidation:
