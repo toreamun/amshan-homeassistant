@@ -10,9 +10,11 @@
       "serial_exception_general": "Could not open serial port. See log for details",
       "serial_exception_errno_2": "Serial device not found",
       "unknown": "Unexpected error",
+      "host_check": "Must be a valid hostname or IP-address",
       "voluptuous_host": "Must be a valid hostname or IP-address",
       "voluptuous_port": "Must be a valid port number (between 0 and 65535)",
-      "mqtt_not_available": "Please make sure MQTT integration has been installed"
+      "mqtt_not_available": "Please make sure MQTT integration has been installed",
+      "invalid_subscribe_topic": "Invalid topic name"
     },
     "step": {
       "network_connection": {

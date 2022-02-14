@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import socket
 from typing import Any, cast
 
@@ -17,7 +18,8 @@ from homeassistant.helpers.typing import HomeAssistantType
 import serial
 import voluptuous as vol
 
-from .amshancfg import (
+from . import ConnectionType, MeterInfo
+from .const import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
@@ -32,45 +34,13 @@ from .amshancfg import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
-    HASS_MSMQ_SCHEMA,
-    SERIAL_SCHEMA,
-    TCP_SCHEMA,
+    HOSTNAME_IP4_IP6_REGEX,
 )
-from .common import ConnectionType, MeterInfo
 from .const import DOMAIN  # pylint: disable=unused-import
 from .metercon import get_connection_factory, get_meter_message
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA_SELECT_DEVICE_TYPE = vol.Schema(
-    {vol.Required("type"): vol.In(["serial", "network", "MQTT"])}
-)
-
-DATA_SCHEMA_NETWORK_DATA = vol.Schema(
-    {
-        vol.Required(CONF_TCP_HOST): str,
-        vol.Required(CONF_TCP_PORT): int,
-    }
-)
-
-DATA_SCHEMA_SERIAL_DATA = vol.Schema(
-    {
-        vol.Required(CONF_SERIAL_PORT): str,
-        vol.Optional(CONF_SERIAL_BAUDRATE, default=2400): int,
-        vol.Optional(CONF_SERIAL_PARITY, default="N"): vol.In(["N", "E", "O"]),
-        vol.Optional(CONF_SERIAL_BYTESIZE, default=8): vol.In([5, 6, 7, 8]),
-        vol.Optional(CONF_SERIAL_STOPBITS, default="1"): vol.In([1, 1.5, 2]),
-        vol.Optional(CONF_SERIAL_XONXOFF, default=False): bool,
-        vol.Optional(CONF_SERIAL_RTSCTS, default=False): bool,
-        vol.Optional(CONF_SERIAL_DSRDTR, default=False): bool,
-    }
-)
-
-DATA_SCHEMA_MQTT_DATA = vol.Schema(
-    {
-        vol.Required(CONF_MQTT_TOPICS): str,
-    }
-)
 
 # max number of frames to search for needed meter information
 # Some meters sends 3 frames containing minimal of data between larger frames. Skip them.
@@ -85,6 +55,7 @@ MAX_FRAME_WAIT_TIME = 12
 # Use the key base if you want to show an error unrelated to a specific field.
 # The specified errors need to refer to a key in a translation file.
 VALIDATION_ERROR_BASE = "base"
+VALIDATION_ERROR_CONNECT = "cannot_connect"
 VALIDATION_ERROR_TIMEOUT_CONNECT = "timeout_connect"
 VALIDATION_ERROR_TIMEOUT_READ_MESSAGE = "timeout_read_messages"
 VALIDATION_ERROR_HOST_CHECK = "host_check"
@@ -133,67 +104,157 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[VALIDATION_ERROR_BASE] = VALIDATION_ERROR_MQTT_NOT_AVAILAVLE
 
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA_SELECT_DEVICE_TYPE, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {vol.Required("type"): vol.In(["serial", "network", "MQTT"])}
+            ),
+            errors=errors,
         )
 
     async def async_step_serial_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the network connection step."""
+        """Handle the serial_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
                 ConnectionType.SERIAL, user_input
             )
             if entry_result:
                 return entry_result
+        else:
+            # set defaults
+            port = await self.hass.async_add_executor_job(
+                self._try_get_first_available_serial
+            )
+
+            user_input = {
+                CONF_SERIAL_PORT: port if port else "",
+                CONF_SERIAL_BAUDRATE: 2400,
+                CONF_SERIAL_PARITY: "N",
+                CONF_SERIAL_BYTESIZE: "8",
+                CONF_SERIAL_STOPBITS: "1",
+                CONF_SERIAL_XONXOFF: False,
+                CONF_SERIAL_RTSCTS: False,
+                CONF_SERIAL_DSRDTR: False,
+            }
 
         return self.async_show_form(
             step_id="serial_connection",
-            data_schema=DATA_SCHEMA_SERIAL_DATA,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SERIAL_PORT, default=user_input[CONF_SERIAL_PORT]
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_SERIAL_BAUDRATE, default=user_input[CONF_SERIAL_BAUDRATE]
+                    ): cv.positive_int,
+                    vol.Optional(
+                        CONF_SERIAL_PARITY, default=user_input[CONF_SERIAL_PARITY]
+                    ): vol.In(["N", "E", "O"]),
+                    vol.Optional(
+                        CONF_SERIAL_BYTESIZE, default=user_input[CONF_SERIAL_BYTESIZE]
+                    ): vol.In(
+                        ["5", "6", "7", "8"]
+                    ),  # use string as workaround gui bug
+                    vol.Optional(
+                        CONF_SERIAL_STOPBITS, default=user_input[CONF_SERIAL_STOPBITS]
+                    ): vol.In(
+                        ["1", "1.5", "2"]
+                    ),  # use string as workaround gui bug
+                    vol.Optional(
+                        CONF_SERIAL_XONXOFF, default=user_input[CONF_SERIAL_XONXOFF]
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_SERIAL_RTSCTS, default=user_input[CONF_SERIAL_RTSCTS]
+                    ): cv.boolean,
+                    vol.Optional(
+                        CONF_SERIAL_DSRDTR, default=user_input[CONF_SERIAL_DSRDTR]
+                    ): cv.boolean,
+                }
+            ),
             errors=self._validator.errors,
         )
 
     async def async_step_network_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the network connection step."""
+        """Handle the network_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
                 ConnectionType.NETWORK, user_input
             )
             if entry_result:
                 return entry_result
+        else:
+            # set defaults
+            user_input = {
+                CONF_TCP_HOST: "",
+                CONF_TCP_PORT: None,
+            }
 
         return self.async_show_form(
             step_id="network_connection",
-            data_schema=DATA_SCHEMA_NETWORK_DATA,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_TCP_HOST, default=user_input[CONF_TCP_HOST]
+                    ): cv.string,
+                    vol.Required(
+                        CONF_TCP_PORT, default=user_input[CONF_TCP_PORT]
+                    ): cv.positive_int,
+                }
+            ),
             errors=self._validator.errors,
         )
 
     async def async_step_hass_mqtt_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle MQTT step."""
+        """Handle hass_mqtt_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
                 ConnectionType.MQTT, user_input
             )
             if entry_result:
                 return entry_result
+        else:
+            # set defaults
+            user_input = {
+                CONF_MQTT_TOPICS: "",
+            }
 
         return self.async_show_form(
             step_id="hass_mqtt_connection",
-            data_schema=DATA_SCHEMA_MQTT_DATA,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_MQTT_TOPICS, default=user_input[CONF_MQTT_TOPICS]
+                    ): cv.string,
+                }
+            ),
             errors=self._validator.errors,
         )
 
     async def _async_try_create_entry(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
     ) -> FlowResult | None:
+        config = dict(user_input)  # create a copy to be able to make changes
+        if connection_type == ConnectionType.SERIAL:
+            config[CONF_SERIAL_BYTESIZE] = int(config[CONF_SERIAL_BYTESIZE])
+            config[CONF_SERIAL_STOPBITS] = float(config[CONF_SERIAL_STOPBITS])
+        elif connection_type == ConnectionType.NETWORK:
+            config[CONF_TCP_PORT] = int(config[CONF_TCP_PORT])
+        elif connection_type == ConnectionType.MQTT:
+            # strip empty elements
+            topics = [
+                x.strip() for x in config[CONF_MQTT_TOPICS].split(",") if x.strip()
+            ]
+            config[CONF_MQTT_TOPICS] = ",".join(topics)
+
         meter_info = await self._validator.async_validate_connection_input(
             cast(HomeAssistantType, self.hass),
             connection_type,
-            user_input,
+            config,
         )
 
         if not self._validator.errors and meter_info:
@@ -212,7 +273,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title=f"{manufacturer} {meter_type} ({connection_type.name.lower()})",
                 data={
                     CONF_CONNECTION_TYPE: connection_type.value,
-                    CONF_CONNECTION_CONFIG: user_input,
+                    CONF_CONNECTION_CONFIG: config,
                 },
             )
 
@@ -220,6 +281,25 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _is_mqtt_available(self) -> bool:
         return mqtt.DOMAIN in self.hass.config.components
+
+    @staticmethod
+    def _try_get_first_available_serial() -> str | None:
+        by_id = "/dev/serial/by-id"
+        if not os.path.isdir(by_id):
+            return None
+
+        for device in (entry.path for entry in os.scandir(by_id) if entry.is_symlink()):
+            try:
+                # Open to test if port is available...
+                port = serial.Serial(device)
+            except serial.SerialException:
+                # It has some error, skip this one
+                continue
+            else:
+                port.close()
+                return device
+
+        return None
 
 
 class ConfigFlowValidation:
@@ -298,6 +378,13 @@ class ConfigFlowValidation:
                         "Serial exception when connecting to HAN-port: %s", ex
                     )
                 return None
+            except ConnectionError as ex:
+                self._set_base_error(VALIDATION_ERROR_CONNECT)
+                _LOGGER.error(
+                    "Network exception (%s) when connecting to HAN-port: %s",
+                    type(ex).__name__,
+                    ex,
+                )
 
             except Exception as ex:
                 _LOGGER.exception("Unexpected error connecting to HAN-port: %s", ex)
@@ -354,11 +441,19 @@ class ConfigFlowValidation:
                 proto=0,
                 flags=0,
             )
-        except OSError:
-            self.errors[CONF_SERIAL_PORT] = VALIDATION_ERROR_HOST_CHECK
+        except OSError as ex:
+            _LOGGER.debug(
+                "Could not resolve host '%s': %s", user_input[CONF_TCP_HOST], ex
+            )
+            self.errors[CONF_TCP_HOST] = VALIDATION_ERROR_HOST_CHECK
 
     def _validate_topics(self, user_input: dict[str, Any]) -> None:
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
+        if not topics:
+            self.errors[
+                CONF_MQTT_TOPICS
+            ] = VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+
         for topic in topics:
             try:
                 mqtt.valid_subscribe_topic(topic)
@@ -370,13 +465,32 @@ class ConfigFlowValidation:
     def _validate_schema(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
     ) -> None:
-        schema = (
-            SERIAL_SCHEMA
-            if connection_type == ConnectionType.SERIAL
-            else TCP_SCHEMA
-            if connection_type == ConnectionType.NETWORK
-            else HASS_MSMQ_SCHEMA
-        )
+        if connection_type == ConnectionType.SERIAL:
+            schema = vol.Schema(
+                {
+                    vol.Required(CONF_SERIAL_PORT): cv.string,
+                    vol.Optional(CONF_SERIAL_BAUDRATE): cv.positive_int,
+                },
+                extra=vol.ALLOW_EXTRA,
+            )
+        elif connection_type == ConnectionType.NETWORK:
+            schema = vol.Schema(
+                {
+                    vol.Required(CONF_TCP_HOST): cv.matches_regex(
+                        HOSTNAME_IP4_IP6_REGEX
+                    ),
+                    vol.Required(CONF_TCP_PORT): cv.port,
+                }
+            )
+        elif connection_type == ConnectionType.MQTT:
+            schema = vol.Schema(
+                {
+                    vol.Required(CONF_MQTT_TOPICS): cv.string,
+                }
+            )
+        else:
+            raise ValueError(f"Unexpected connection type {connection_type}")
+
         try:
             schema(user_input)
         except vol.MultipleInvalid as ex:
@@ -404,8 +518,7 @@ class ConfigFlowValidation:
 
         if not self.errors and connection_type == ConnectionType.NETWORK:
             await self._async_validate_host_address(hass.loop, user_input)
-
-        if not self.errors and connection_type == ConnectionType.MQTT:
+        elif not self.errors and connection_type == ConnectionType.MQTT:
             self._validate_topics(user_input)
 
         if not self.errors and connection_type in (

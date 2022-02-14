@@ -1,52 +1,63 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect, please try again",
+      "timeout_connect": "Timeout connecting",
+      "timeout_read_messages": "Timeout reading data",
+      "serial_exception_general": "Could not open serial port. See log for details",
+      "serial_exception_errno_2": "Serial device not found",
+      "unknown": "Unexpected error",
+      "host_check": "Must be a valid hostname or IP-address",
+      "voluptuous_host": "Must be a valid hostname or IP-address",
+      "voluptuous_port": "Must be a valid port number (between 0 and 65535)",
+      "mqtt_not_available": "Please make sure MQTT integration has been installed",
+      "invalid_subscribe_topic": "Invalid topic name"
+    },
     "step": {
-      "user": {
-        "title": "Select connection type",
-        "data": {
-          "type": "Connection type"
-        }
-      },
       "network_connection": {
-        "title": "Connect to network host",
         "data": {
           "host": "Host address (name or IP)",
           "port": "TCP/IP port number"
-        }
+        },
+        "title": "Connect to network host"
       },
       "serial_connection": {
-        "title": "Connect to serial device",
         "data": {
-          "port": "Serial device name",
           "baudrate": "Baud rate such as 2400, 9600, or 115200 etc.",
-          "parity": "Parity checking",
           "bytesize": "Number of data bits",
-          "stopbits": "Number of stop bits",
-          "xonxoff": "Enable software flow control",
+          "dsrdtr": "Enable hardware (DSR/DTR) flow control",
+          "parity": "Parity checking",
+          "port": "Serial device name",
           "rtscts": "Enable hardware (RTS/CTS) flow control",
-          "dsrdtr": "Enable hardware (DSR/DTR) flow control"
-        }
+          "stopbits": "Number of stop bits",
+          "xonxoff": "Enable software flow control"
+        },
+        "title": "Connect to serial device"
       },
       "hass_mqtt_connection": {
         "title": "Subscribe to MQTT topic(s)",
         "data": {
           "mqtt_topics": "MQTT topic(s) separated by comma"
         }
+      },
+      "user": {
+        "data": {
+          "type": "Connection type"
+        },
+        "title": "Select connection type"
       }
-    },
-    "error": {
-      "voluptuous_host": "Must be a valid hostname or IP-address",
-      "voluptuous_port": "Must be a valid port number (between 0 and 65535)",
-      "timeout_connect": "Timeout connecting",
-      "timeout_read_messages": "Timeout reading data",
-      "cannot_connect": "Failed to connect, please try again",
-      "serial_exception_general": "Could not open serial port. See log for details",
-      "serial_exception_errno_2": "Serial device not found",
-      "unknown": "Unexpected error",
-      "mqtt_not_available": "MQTT is not available. Please make sure MQTT integration is installed"
-    },
-    "abort": {
-      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "scale_factor": "Currents, power, and energy scale factor. Default, and most common, is 1."
+        }
+      }
     }
   }
 }
