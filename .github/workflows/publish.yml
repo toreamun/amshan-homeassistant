@@ -1,0 +1,31 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+
+jobs:
+  release_zip_file:
+    name: Publish amshan.zip file asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: ZIP amshan folder
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          cd ${{ github.workspace }}/custom_components/amshan
+          zip amshan.zip -r ./
+
+      - name: Upload zip to release
+        uses: svenstaro/upload-release-action@v1-release
+        if: ${{ github.event_name == 'release' }}
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ github.workspace }}/custom_components/amshan/amshan.zip
+          asset_name: amshan.zip
+          tag: ${{ github.ref }}
+          overwrite: true
