@@ -77,10 +77,22 @@ Integrasjonen er en Home Assistant Custom integration. Den enkleste måten er å
 - Bytt katalog til config
 - Lag katalogen custom_components hvis den ikke eksisterer.
 - Bytt katalog til custom_components
-- Last ned git repoet
+- Last ned amshan
 
 ```
-git clone https://github.com/toreamun/amshan-homeassistant amshan
+wget https://github.com/toreamun/amshan-homeassistant/releases/latest/download/amshan.zip
+```
+
+- Pakk ut filene til katalogen amshan
+
+```
+unzip amshan.zip -d amshan       
+```
+
+- Slett amshan.zip
+
+```
+rm amshan.zip
 ```
 
 - Restart Home Assistant
@@ -92,12 +104,25 @@ git clone https://github.com/toreamun/amshan-homeassistant amshan
 - Bytt katalog Home Assistant sin config katalog
 - Lag katalogen custom_components hvis den ikke eksisterer.
 - Bytt katalog til custom_components
-- Last ned git repoet
+- Last ned amshan
 
 ```
-git clone https://github.com/toreamun/amshan-homeassistant amshan
+wget https://github.com/toreamun/amshan-homeassistant/releases/latest/download/amshan.zip
 ```
 
+- Pakk ut filene til katalogen amshan
+
+```
+unzip amshan.zip -d amshan       
+```
+
+- Slett amshan.zip
+
+```
+rm amshan.zip
+```
+
+- Restart Home Assistant
 - Tøm nettleseren sin cache. Hvis du ikke gjør dette risikerer du å ikke finne integrasjonen i listen av tilgjengelige integrasjoner.
 
 ### Installasjon av integrasjonen
@@ -112,7 +137,7 @@ Velg type tilkobling:
 
 #### MQTT
 
-For å kunne velge MQTT må du først ha satt opp MQTT-integrasjonen i Home Assistant. Ved oppsett av AMDHAN integrasjonen legger du inn MQTT topic som HAN-port adapter publiserer til. Ved bruk av Tibbe Pulse er dette samme topic som er lagt inn for mqtt_topic i oppsett av Tibber Pulse. Hvis du har en adapter som publiserer de ulike listene som måleren sender til ulike topic kan du legge inn flere separert med komma.
+For å kunne velge MQTT må du først ha satt opp MQTT-integrasjonen i Home Assistant. Ved oppsett av AMSHAN-integrasjonen legger du inn MQTT topic som HAN-port adapter publiserer til. Ved bruk av Tibbe Pulse er dette samme topic som er lagt inn for mqtt_topic i oppsett av Tibber Pulse. Hvis du har en adapter som publiserer de ulike listene som måleren sender til ulike topic kan du legge inn flere separert med komma.
 
 #### Serieport
 
