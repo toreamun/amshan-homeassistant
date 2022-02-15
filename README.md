@@ -12,7 +12,7 @@
 
 # AMS HAN Home Assistant integrasjon
 
-**Home Assistant integrasjon for norske og svenske strømmålere. Både DLMS og P1 fortmater støttes. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](amsleser.no) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
+**Home Assistant integrasjon for norske og svenske strømmålere. Både DLMS og P1 fortmater støttes. Itegrasjonen støter både streaming (serieport/TCP-IP) og MQTT. [Tibber Pulse](https://tibber.com/no/store/produkt/pulse) kan settes opp til å publisere til lokal MQTT som denne integrasjonen kan benytte.** [Snart](https://github.com/gskjold/AmsToMqttBridge/milestone/22) kan også [amsleser.no](https://amsleser.no/) og [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) benyttes.
 
 Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype).
 
@@ -36,7 +36,7 @@ Hvis du bestemmer deg for å kjøpe en Tibber Pulse for å benytte med denne int
 
 ## Benytte amsleser.no/AmsToMqttBridge
 
-[AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) som benyttes av [amsleser.no](amsleser.no) har planlagt MQTT støtten som kreves for å fungere med denne integrasjonen i sin release [v2.1](https://github.com/gskjold/AmsToMqttBridge/milestone/22). Leseren fra [amsleser.no](amsleser.no) krever verken batteri eller strømforsyning.
+[AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) som benyttes av [amsleser.no](https://amsleser.no/) har planlagt MQTT støtten som kreves for å fungere med denne integrasjonen i sin release [v2.1](https://github.com/gskjold/AmsToMqttBridge/milestone/22). Leseren fra [amsleser.no](https://amsleser.no/) krever verken batteri eller strømforsyning.
 
 ## MQTT uten bruk av Tibber Pulse
 
