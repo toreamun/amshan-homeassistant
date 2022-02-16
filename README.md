@@ -13,13 +13,13 @@
 # AMS HAN Home Assistant integrasjon
 
 Home Assistant integrasjon for norske og svenske strømmålere. Både DLMS og P1 fortmater støttes. Integrasjonen skal i prinsippet fungere med alle typer leserer som videresender datastrømmen fra måleren direkte ([serieport/TCP-IP](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-serieport-og-nettverk)) eller oppdelt som [meldinger til MQTT](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT). Noen aktuelle lesere er:
-| Leser | stream/MQTT | DLMS/P1 |
-| ------------------------------------------------------------------------------------------------- | ----------- | ---------- |
-| [Tibber Pulse](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#tibber-pulse) | MQTT | DLMS og P1 |
-| [energyintelligence.se P1 elmätaravläsare](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#energyintelligencese-p1-elm%C3%A4taravl%C3%A4sare) | MQTT | P1 |
-| [AmsToMqttBridge og amsleser.no](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#amstomqttbridge-og-amsleserno) [ver 2.1](https://github.com/gskjold/AmsToMqttBridge/milestone/22) | MQTT | DLMS |
-| [M-BUS slave](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-serieport-og-nettverk#m-bus-enhet) | stream | DLMS |
-| [Oss brikken](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-serieport-og-nettverk#oss-brikken) | stream | DLMS |
+| Leser | stream/MQTT | DLMS/P1 |Land|
+| ------------------------------------------------------------------------------------------------- | ----------- | ---------- |--|
+| [Tibber Pulse](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#tibber-pulse) | MQTT | DLMS og P1 | NO, SE|
+| [energyintelligence.se P1 elmätaravläsare](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#energyintelligencese-p1-elm%C3%A4taravl%C3%A4sare) | MQTT | P1 | SE |
+| [AmsToMqttBridge og amsleser.no](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-MQTT#amstomqttbridge-og-amsleserno) [ver 2.1](https://github.com/gskjold/AmsToMqttBridge/milestone/22) | MQTT | DLMS | NO, SE? |
+| [M-BUS slave](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-serieport-og-nettverk#m-bus-enhet) | stream | DLMS | NO, SE |
+| [Oss brikken](https://github.com/toreamun/amshan-homeassistant/wiki/Lesere-serieport-og-nettverk#oss-brikken) | stream | DLMS | NO |
 
 Integrasjonen benytter [local push](https://www.home-assistant.io/blog/2016/02/12/classifying-the-internet-of-things/), og Home Assistant blir derfor oppdatert umiddelbart etter at måleren har sendt ut nye data på porten (2 sekund, 10 sekund, og hver hele time, avhengig av informasjonselement og målertype). Flere målere kan være tilknyttet samme Home Assistant installasjon.
 
