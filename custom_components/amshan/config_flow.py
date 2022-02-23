@@ -429,6 +429,10 @@ class ConfigFlowValidation:
             for ubsubscribe in unsubscibers:
                 ubsubscribe()
 
+            # workaround MQTT bug when topic is re-subscribed at setup at the same
+            # time as unsubscribe runs as a background job
+            await asyncio.sleep(1, loop=hass.loop)
+
     async def _async_validate_host_address(
         self, loop: asyncio.AbstractEventLoop, user_input: dict[str, Any]
     ) -> None:
