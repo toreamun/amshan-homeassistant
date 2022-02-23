@@ -95,16 +95,33 @@ async def async_setup_meter_mqtt_subscriptions(
     @callback
     def message_received(mqtt_message: mqtt.models.ReceiveMessage) -> None:
         """Handle new MQTT messages."""
+        _LOGGER.debug(
+            (
+                "Message with timestamp %s, QOS %d, retain flagg %s, and payload length %d received "
+                "from topic %s from subscription to topic %s"
+            ),
+            mqtt_message.timestamp,
+            mqtt_message.qos,
+            bool(mqtt_message.retain),
+            len(mqtt_message.payload),
+            mqtt_message.topic,
+            mqtt_message.subscribed_topic,
+        )
         meter_message = get_meter_message(mqtt_message)
         if meter_message:
             measure_queue.put_nowait(meter_message)
 
     unsubscibers: list[Callable] = []
     topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
+
+    _LOGGER.debug("Try to subscribe to %d MQTT topic(s): %s", len(topics), topics)
     for topic in topics:
         unsubscibers.append(
             await mqtt.async_subscribe(hass, topic, message_received, 1, encoding=None)
         )
+    _LOGGER.debug(
+        "Successfully subscribed to %d MQTT topic(s): %s", len(topics), topics
+    )
 
     @callback
     def unsubscribe_mqtt():

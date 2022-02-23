@@ -53,7 +53,8 @@ class AmsHanIntegration:
         self, hass: HomeAssistantType, config_data: Mapping
     ) -> None:
         """Set up MQTT or serial/tcp-ip receiver."""
-        if ConnectionType.MQTT == ConnectionType(config_data[CONF_CONNECTION_TYPE]):
+        connection_type = ConnectionType(config_data[CONF_CONNECTION_TYPE])
+        if ConnectionType.MQTT == connection_type:
             self._mqtt_unsubscribe = await async_setup_meter_mqtt_subscriptions(
                 hass,
                 config_data[CONF_CONNECTION_CONFIG],
@@ -67,6 +68,8 @@ class AmsHanIntegration:
             )
             hass.loop.create_task(manager.connect_loop())
             self._connection_manager = manager
+
+        _LOGGER.debug("Configured %s receiver.", connection_type)
 
     def add_listener(self, listener_unsubscribe: CALLBACK_TYPE) -> None:
         """Add listener to be removed on unload."""
@@ -131,6 +134,8 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) 
 
     hass.config_entries.async_setup_platforms(config_entry, [PLATFORM_TYPE])
     hass.data[DOMAIN][config_entry.entry_id] = integration
+
+    _LOGGER.debug("async_setup_entry complete.")
 
     return True
 

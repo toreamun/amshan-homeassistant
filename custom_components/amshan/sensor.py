@@ -236,6 +236,8 @@ async def async_setup_entry(
     async_add_entities: Callable[[list[entity.Entity], bool], None],
 ):
     """Add hantest sensor platform from a config_entry."""
+    _LOGGER.debug("Sensor async_setup_entry starting.")
+
     integration: AmsHanIntegration = hass.data[DOMAIN][config_entry.entry_id]
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
         hass, config_entry, async_add_entities, integration.measure_queue
@@ -243,6 +245,8 @@ async def async_setup_entry(
 
     # start processing loop task
     integration.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
+
+    _LOGGER.debug("Sensor async_setup_entry ended.")
 
 
 class AmsHanEntity(SensorEntity):
@@ -509,6 +513,7 @@ class MeterMeasureProcessor:
 
     async def async_process_measures_loop(self) -> None:
         """Start the processing loop. The method exits when StopMessage is received from queue."""
+        _LOGGER.debug("Processing loop starting.")
         while True:
             try:
                 message = await self._async_decode_next_valid_message()
