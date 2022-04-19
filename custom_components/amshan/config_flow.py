@@ -431,7 +431,7 @@ class ConfigFlowValidation:
 
             # workaround MQTT bug when topic is re-subscribed at setup at the same
             # time as unsubscribe runs as a background job
-            await asyncio.sleep(1, loop=hass.loop)
+            await asyncio.sleep(1)
 
     async def _async_validate_host_address(
         self, loop: asyncio.AbstractEventLoop, user_input: dict[str, Any]
