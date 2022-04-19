@@ -221,4 +221,15 @@ def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
     if len(frames) > 0:
         return frames[0]
 
-    return None
+    # is hex?
+    try:
+        int(payload, 16)
+    except ValueError:
+        return None
+
+    binary = (
+        bytes.fromhex(payload)
+        if isinstance(payload, str)
+        else bytes.fromhex(payload.decode("utf8"))
+    )
+    return _try_read_meter_message(binary)
