@@ -185,7 +185,7 @@ async def async_migrate_config_entry(
 async def async_unload_entry(
     hass: HomeAssistantType, config_entry: ConfigEntry
 ) -> bool:
-    """Migrate config when ConfigFlow version has changed."""
+    """Handle removal of an entry."""
     is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
         config_entry, PLATFORM_TYPE
     )
@@ -202,7 +202,7 @@ async def async_unload_entry(
 async def async_config_entry_changed(
     hass: HomeAssistantType, config_entry: ConfigEntry
 ):
-    """Handle config entry chnaged callback."""
+    """Handle config entry changed callback."""
     _LOGGER.info("Config entry has changed. Reload integration.")
     await hass.config_entries.async_reload(config_entry.entry_id)
 

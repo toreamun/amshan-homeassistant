@@ -263,7 +263,7 @@ class AmsHanEntity(SensorEntity):
     ) -> None:
         """Initialize AmsHanEntity class."""
         if entity_description is None:
-            raise TypeError("measure_id is required")
+            raise TypeError("entity_description is required")
         if measure_data is None:
             raise TypeError("measure_data is required")
         if (
