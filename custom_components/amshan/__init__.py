@@ -132,8 +132,8 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) 
         config_entry.add_update_listener(async_config_entry_changed)
     )
 
-    hass.config_entries.async_setup_platforms(config_entry, [PLATFORM_TYPE])
     hass.data[DOMAIN][config_entry.entry_id] = integration
+    await hass.config_entries.async_forward_entry_setup(config_entry, PLATFORM_TYPE)
 
     _LOGGER.debug("async_setup_entry complete.")
 
