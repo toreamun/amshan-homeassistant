@@ -267,7 +267,13 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if meter_info.manufacturer
                 else meter_info.manufacturer_id
             )
-            meter_type = meter_info.type if meter_info.type else meter_info.type_id
+            meter_type = (
+                meter_info.type
+                if meter_info.type
+                else meter_info.type_id
+                if meter_info.type_id
+                else ""
+            )
 
             return self.async_create_entry(
                 title=f"{manufacturer} {meter_type} ({connection_type.name.lower()})",
@@ -329,9 +335,9 @@ class ConfigFlowValidation:
                 decoded_measure = decoder.decode_message(measure)
                 if decoded_measure:
                     if (
-                        obis_map.FIELD_METER_ID in decoded_measure
-                        and obis_map.FIELD_METER_MANUFACTURER in decoded_measure
-                    ) or (obis_map.FIELD_METER_MANUFACTURER_ID in decoded_measure):
+                        obis_map.FIELD_METER_MANUFACTURER_ID in decoded_measure
+                        or obis_map.FIELD_METER_MANUFACTURER in decoded_measure
+                    ):
                         return MeterInfo.from_measure_data(decoded_measure)
 
                     _LOGGER.debug("Decoded measure data is missing required info.")
