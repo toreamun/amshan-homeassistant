@@ -588,12 +588,9 @@ class MeterMeasureProcessor:
     def _ensure_entities_are_created(
         self, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> None:
-        # meter_id, manufacturer or manufacturer_id is required to register entities (required by unique_id).
-        meter_id = measure_data.get(obis_map.FIELD_METER_ID)
-        manufacturer = measure_data.get(obis_map.FIELD_METER_MANUFACTURER)
-        manufacturer_id = measure_data.get(obis_map.FIELD_METER_MANUFACTURER_ID)
-
-        if meter_id or manufacturer or manufacturer_id:
+        # Norwegian short message does not have enough data to register entities with unique_id.
+        # Check for voltage to detect if this is not a short message
+        if obis_map.FIELD_VOLTAGE_L1 in measure_data:
             missing_measures = measure_data.keys() - self._known_measures
 
             if missing_measures:
@@ -607,7 +604,9 @@ class MeterMeasureProcessor:
                     missing_measures.update(missing_hour_sensors)
 
                 new_enitities = self._create_entities(
-                    missing_measures, str(meter_id), measure_data
+                    missing_measures,
+                    str(measure_data.get(obis_map.FIELD_METER_ID)),
+                    measure_data,
                 )
                 if new_enitities:
                     self._add_entities(new_enitities)
