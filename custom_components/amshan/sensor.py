@@ -362,14 +362,13 @@ class AmsHanEntity(SensorEntity):
                 )
             else:
                 manufacturer = {
-                    self._meter_info.manufacturer
-                    if self._meter_info.manufacturer
-                    else self._meter_info.manufacturer_id
+                    self._meter_info.manufacturer_id
+                    if self._meter_info.manufacturer_id
+                    else self._meter_info.manufacturer
                 }
                 self._unique_id = (
                     f"CEID-{self._config_entry_id}-"
-                    f"{manufacturer}"
-                    f"{self._meter_info.type_id if self._meter_info.type_id else ''}"
+                    f"{manufacturer}{self._meter_info.type_id}"
                     f"-{self.measure_id}"
                 )
         return self._unique_id
