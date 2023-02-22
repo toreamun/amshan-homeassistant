@@ -180,12 +180,13 @@ def get_meter_message(
 
     try:
         json_data = json.loads(mqtt_message.payload)
-        _LOGGER.debug(
-            "Ignore JSON in payload without HDLC framing from topic %s: %s",
-            mqtt_message.topic,
-            json_data,
-        )
-        return None
+        if isinstance(json_data, dict):
+            _LOGGER.debug(
+                "Ignore JSON in payload without HDLC framing from topic %s: %s",
+                mqtt_message.topic,
+                json_data,
+            )
+            return None
     except ValueError:
         pass
 
@@ -195,7 +196,12 @@ def get_meter_message(
         mqtt_message.payload.hex(),
     )
 
-    return han_type.DlmsMessage(mqtt_message.payload)
+    binary = (
+        _payload_to_binary(mqtt_message.payload)
+        if _is_hex_string(mqtt_message.payload)
+        else mqtt_message.payload
+    )
+    return han_type.DlmsMessage(binary)
 
 
 def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
@@ -221,15 +227,25 @@ def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
     if len(frames) > 0:
         return frames[0]
 
-    # is hex?
-    try:
-        int(payload, 16)
-    except ValueError:
+    if not _is_hex_string(payload):
         return None
 
-    binary = (
+    return _try_read_meter_message(_payload_to_binary(payload))
+
+
+def _is_hex_string(payload: bytes) -> bool:
+    if (len(payload) % 2) == 0:
+        try:
+            int(payload, 16)
+            return True
+        except ValueError:
+            return False
+    return False
+
+
+def _payload_to_binary(payload) -> bytes:
+    return (
         bytes.fromhex(payload)
         if isinstance(payload, str)
         else bytes.fromhex(payload.decode("utf8"))
     )
-    return _try_read_meter_message(binary)
