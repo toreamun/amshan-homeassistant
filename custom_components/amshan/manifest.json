@@ -1,18 +1,18 @@
 {
   "domain": "amshan",
   "name": "AMS HAN meter",
-  "version": "2023.6.0",
-  "config_flow": true,
-  "documentation": "https://github.com/toreamun/amshan-homeassistant",
-  "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
-  "codeowners": [
-    "@toreamun"
-  ],
-  "requirements": [
-    "amshan[serial]==2.1.1"
-  ],
   "after_dependencies": [
     "mqtt"
   ],
-  "iot_class": "local_push"
+  "codeowners": [
+    "@toreamun"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/toreamun/amshan-homeassistant",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/toreamun/amshan-homeassistant/issues",
+  "requirements": [
+    "amshan[serial]==2.1.1"
+  ],
+  "version": "2023.6.0"
 }
