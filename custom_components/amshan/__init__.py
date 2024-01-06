@@ -230,9 +230,21 @@ def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
         obis_map.FIELD_METER_TYPE,
         obis_map.FIELD_OBIS_LIST_VER_ID,
         obis_map.FIELD_ACTIVE_POWER_IMPORT,
+        obis_map.FIELD_ACTIVE_POWER_IMPORT_L1,
+        obis_map.FIELD_ACTIVE_POWER_IMPORT_L2,
+        obis_map.FIELD_ACTIVE_POWER_IMPORT_L3,
         obis_map.FIELD_ACTIVE_POWER_EXPORT,
+        obis_map.FIELD_ACTIVE_POWER_EXPORT_L1,
+        obis_map.FIELD_ACTIVE_POWER_EXPORT_L2,
+        obis_map.FIELD_ACTIVE_POWER_EXPORT_L3,
         obis_map.FIELD_REACTIVE_POWER_IMPORT,
+        obis_map.FIELD_REACTIVE_POWER_IMPORT_L1,
+        obis_map.FIELD_REACTIVE_POWER_IMPORT_L2,
+        obis_map.FIELD_REACTIVE_POWER_IMPORT_L3,
         obis_map.FIELD_REACTIVE_POWER_EXPORT,
+        obis_map.FIELD_REACTIVE_POWER_EXPORT_L1,
+        obis_map.FIELD_REACTIVE_POWER_EXPORT_L2,
+        obis_map.FIELD_REACTIVE_POWER_EXPORT_L3,
         obis_map.FIELD_CURRENT_L1,
         obis_map.FIELD_CURRENT_L2,
         obis_map.FIELD_CURRENT_L3,
@@ -259,7 +271,13 @@ def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
 
             if measure_id in (
                 obis_map.FIELD_REACTIVE_POWER_IMPORT,
+                obis_map.FIELD_REACTIVE_POWER_IMPORT_L1,
+                obis_map.FIELD_REACTIVE_POWER_IMPORT_L2,
+                obis_map.FIELD_REACTIVE_POWER_IMPORT_L3,
                 obis_map.FIELD_REACTIVE_POWER_EXPORT,
+                obis_map.FIELD_REACTIVE_POWER_EXPORT_L1,
+                obis_map.FIELD_REACTIVE_POWER_EXPORT_L2,
+                obis_map.FIELD_REACTIVE_POWER_EXPORT_L3,
             ):
                 update["device_class"] = ha_sensor.SensorDeviceClass.REACTIVE_POWER
                 update["unit_of_measurement"] = ha_const.POWER_VOLT_AMPERE_REACTIVE
