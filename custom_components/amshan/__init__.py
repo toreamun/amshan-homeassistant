@@ -12,9 +12,9 @@ from han import common as han_type, meter_connection, obis_map
 from homeassistant import const as ha_const
 from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant, Event
 from homeassistant.helpers import entity_registry
-from homeassistant.helpers.typing import ConfigType, EventType
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_CONNECTION_CONFIG,
@@ -119,7 +119,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     # Listen for Home Assistant stop event
     @callback
-    async def on_hass_stop(event: EventType) -> None:
+    async def on_hass_stop(event: Event) -> None:
         _LOGGER.debug("%s received. Close down integration.", event.event_type)
         integration.stop_receive()
 
