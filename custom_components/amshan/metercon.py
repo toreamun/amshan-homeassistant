@@ -16,8 +16,7 @@ from han import (
     tcp_connection_factory as han_tcp,
 )
 from homeassistant.components import mqtt
-from homeassistant.core import callback
-from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.core import callback, HomeAssistant
 
 from .const import (
     CONF_MQTT_TOPICS,
@@ -86,7 +85,7 @@ def get_connection_factory(
 
 
 async def async_setup_meter_mqtt_subscriptions(
-    hass: HomeAssistantType,
+    hass: HomeAssistant,
     config: Mapping[str, Any],
     measure_queue: asyncio.Queue[han_type.MeterMessageBase],
 ) -> Callable:

@@ -12,9 +12,9 @@ from han import common as han_type, meter_connection, obis_map
 from homeassistant import const as ha_const
 from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, callback
+from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant
 from homeassistant.helpers import entity_registry
-from homeassistant.helpers.typing import ConfigType, EventType, HomeAssistantType
+from homeassistant.helpers.typing import ConfigType, EventType
 
 from .const import (
     CONF_CONNECTION_CONFIG,
@@ -50,7 +50,7 @@ class AmsHanIntegration:
         self.measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()
 
     async def async_setup_receiver(
-        self, hass: HomeAssistantType, config_data: Mapping
+        self, hass: HomeAssistant, config_data: Mapping
     ) -> None:
         """Set up MQTT or serial/tcp-ip receiver."""
         connection_type = ConnectionType(config_data[CONF_CONNECTION_TYPE])
@@ -105,13 +105,13 @@ class AmsHanIntegration:
             self._mqtt_unsubscribe = None
 
 
-async def async_setup(hass: HomeAssistantType, _: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
     """Set up the amshan component."""
     hass.data[DOMAIN] = {}
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up amshan from a config entry."""
     integration = AmsHanIntegration()
 
@@ -141,7 +141,7 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) 
 
 
 async def async_migrate_config_entry(
-    hass: HomeAssistantType, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: ConfigEntry
 ) -> bool:
     """Migrate config when ConfigFlow version has changed."""
     initial_version = config_entry.version
@@ -183,7 +183,7 @@ async def async_migrate_config_entry(
 
 
 async def async_unload_entry(
-    hass: HomeAssistantType, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: ConfigEntry
 ) -> bool:
     """Handle removal of an entry."""
     is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
@@ -200,7 +200,7 @@ async def async_unload_entry(
 
 @callback
 async def async_config_entry_changed(
-    hass: HomeAssistantType, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: ConfigEntry
 ):
     """Handle config entry changed callback."""
     _LOGGER.info("Config entry has changed. Reload integration.")
@@ -276,7 +276,7 @@ def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
 
 
 async def _async_migrate_entries(
-    hass: HomeAssistantType,
+    hass: HomeAssistant,
     config_entry_id: str,
     entry_callback: Callable[[entity_registry.RegistryEntry], dict | None],
 ) -> None:
