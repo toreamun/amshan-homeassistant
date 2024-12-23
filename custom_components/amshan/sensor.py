@@ -158,7 +158,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L1,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L1 voltage",
@@ -168,7 +168,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L2,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L2 voltage",
@@ -178,7 +178,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L3,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=ha_const.UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L3 voltage",
