@@ -130,7 +130,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L1,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_CURRENT,
             name="Current phase L1",
@@ -140,7 +140,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L2,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L2",
             decimals=3,
@@ -149,7 +149,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L3,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=ha_const.UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L3",
             decimals=3,
