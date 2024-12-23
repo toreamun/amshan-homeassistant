@@ -90,7 +90,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=ha_const.POWER_WATT,
+            native_unit_of_measurement=ha_const.UnitOfPower.WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Active power import (Q1+Q4)",
@@ -100,7 +100,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=ha_const.POWER_WATT,
+            native_unit_of_measurement=ha_const.UnitOfPower.WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Active power export (Q2+Q3)",
