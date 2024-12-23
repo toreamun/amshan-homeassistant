@@ -14,7 +14,7 @@ from homeassistant.components import mqtt
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.core import HomeAssistant
 import serial
 import voluptuous as vol
 
@@ -252,7 +252,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             config[CONF_MQTT_TOPICS] = ",".join(topics)
 
         meter_info = await self._validator.async_validate_connection_input(
-            cast(HomeAssistantType, self.hass),
+            self.hass,
             connection_type,
             config,
         )
@@ -406,7 +406,7 @@ class ConfigFlowValidation:
                 transport.close()
 
     async def _async_validate_mqtt_connection(
-        self, hass: HomeAssistantType, user_input: dict[str, Any]
+        self, hass: HomeAssistant, user_input: dict[str, Any]
     ) -> MeterInfo | None:
         measure_queue: asyncio.Queue[han_type.MeterMessageBase] = asyncio.Queue()
 
@@ -517,7 +517,7 @@ class ConfigFlowValidation:
 
     async def async_validate_connection_input(
         self,
-        hass: HomeAssistantType,
+        hass: HomeAssistant,
         connection_type: ConnectionType,
         user_input: dict[str, Any],
     ) -> MeterInfo | None:

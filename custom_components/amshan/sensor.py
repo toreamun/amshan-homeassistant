@@ -18,9 +18,8 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import State, callback
+from homeassistant.core import State, callback, HomeAssistant
 from homeassistant.helpers import dispatcher, entity, restore_state
-from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.util import dt as dt_util
 
 from . import AmsHanIntegration, MeterInfo, StopMessage
@@ -237,7 +236,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
 
 
 async def async_setup_entry(
-    hass: HomeAssistantType,
+    hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: Callable[[list[entity.Entity], bool], None],
 ):
@@ -331,7 +330,7 @@ class AmsHanEntity(SensorEntity):
 
         # subscribe to update events for this meter
         self._async_remove_dispatcher = dispatcher.async_dispatcher_connect(
-            cast(HomeAssistantType, self.hass),
+            self.hass,
             self._new_measure_signal_name,
             on_new_measure,
         )
@@ -511,7 +510,7 @@ class MeterMeasureProcessor:
 
     def __init__(
         self,
-        hass: HomeAssistantType,
+        hass: HomeAssistant,
         config_entry: ConfigEntry,
         async_add_entities: Callable[[list[entity.Entity], bool], None],
         measure_queue: asyncio.Queue[han_type.MeterMessageBase],
