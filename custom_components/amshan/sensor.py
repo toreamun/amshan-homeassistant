@@ -11,6 +11,7 @@ from typing import Callable, Iterable, cast
 
 from han import autodecoder, common as han_type, obis_map
 from homeassistant import const as ha_const
+from homeassistant.const import UnitOfPower, UnitOfEnergy, UnitOfElectricCurrent, UnitOfElectricPotential, UnitOfReactivePower
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -90,7 +91,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=ha_const.POWER_WATT,
+            native_unit_of_measurement=UnitOfPower.WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Active power import (Q1+Q4)",
@@ -100,7 +101,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.POWER,
-            native_unit_of_measurement=ha_const.POWER_WATT,
+            native_unit_of_measurement=UnitOfPower.WATT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Active power export (Q2+Q3)",
@@ -110,7 +111,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Reactive power import (Q1+Q2)",
@@ -120,7 +121,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Reactive power export (Q3+Q4)",
@@ -130,7 +131,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L1,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_CURRENT,
             name="Current phase L1",
@@ -140,7 +141,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L2,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L2",
             decimals=3,
@@ -149,7 +150,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_CURRENT_L3,
             device_class=SensorDeviceClass.CURRENT,
-            native_unit_of_measurement=ha_const.ELECTRIC_CURRENT_AMPERE,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current phase L3",
             decimals=3,
@@ -158,7 +159,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L1,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L1 voltage",
@@ -168,7 +169,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L2,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L2 voltage",
@@ -178,7 +179,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_VOLTAGE_L3,
             device_class=SensorDeviceClass.VOLTAGE,
-            native_unit_of_measurement=ha_const.ELECTRIC_POTENTIAL_VOLT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_VOLTAGE,
             name="Phase L3 voltage",
@@ -188,7 +189,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_IMPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ha_const.ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
             name="Cumulative hourly active import energy (A+) (Q1+Q4)",
@@ -200,7 +201,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_ACTIVE_POWER_EXPORT_TOTAL,
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ha_const.ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             icon=ICON_COUNTER,
             name="Cumulative hourly active export energy (A-) (Q2+Q3)",
