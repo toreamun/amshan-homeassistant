@@ -11,7 +11,7 @@ from typing import Callable, Iterable, cast
 
 from han import autodecoder, common as han_type, obis_map
 from homeassistant import const as ha_const
-from homeassistant.const import UnitOfPower, UnitOfEnergy, UnitOfElectricCurrent, UnitOfElectricPotential
+from homeassistant.const import UnitOfPower, UnitOfEnergy, UnitOfElectricCurrent, UnitOfElectricPotential, UnitOfReactivePower
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -111,7 +111,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_IMPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_IMPORT,
             name="Reactive power import (Q1+Q2)",
@@ -121,7 +121,7 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_REACTIVE_POWER_EXPORT,
             device_class=SensorDeviceClass.REACTIVE_POWER,
-            native_unit_of_measurement=ha_const.POWER_VOLT_AMPERE_REACTIVE,
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             state_class=SensorStateClass.MEASUREMENT,
             icon=ICON_POWER_EXPORT,
             name="Reactive power export (Q3+Q4)",

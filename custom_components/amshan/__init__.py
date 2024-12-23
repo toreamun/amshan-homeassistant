@@ -10,6 +10,7 @@ from typing import Callable, Mapping, cast
 
 from han import common as han_type, meter_connection, obis_map
 from homeassistant import const as ha_const
+from homeassistant.const import UnitOfReactivePower
 from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant, Event
@@ -262,12 +263,12 @@ def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
                 obis_map.FIELD_REACTIVE_POWER_EXPORT,
             ):
                 update["device_class"] = ha_sensor.SensorDeviceClass.REACTIVE_POWER
-                update["unit_of_measurement"] = ha_const.POWER_VOLT_AMPERE_REACTIVE
+                update["unit_of_measurement"] = UnitOfReactivePower.VOLT_AMPERE_REACTIVE
                 _LOGGER.info(
                     "Migrated %s to device class %s with unit %s",
                     entity.unique_id,
                     ha_sensor.SensorDeviceClass.REACTIVE_POWER,
-                    ha_const.POWER_VOLT_AMPERE_REACTIVE,
+                    UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
                 )
 
             break
