@@ -23,7 +23,7 @@ from homeassistant.core import State, callback, HomeAssistant
 from homeassistant.helpers import dispatcher, entity, restore_state
 from homeassistant.util import dt as dt_util
 
-from . import AmsHanIntegration, MeterInfo, StopMessage
+from . import AmsHanConfigEntry, MeterInfo, StopMessage
 from .const import (
     CONF_OPTIONS_SCALE_FACTOR,
     DOMAIN,
@@ -238,19 +238,18 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: AmsHanConfigEntry,
     async_add_entities: Callable[[list[entity.Entity], bool], None],
 ):
     """Add hantest sensor platform from a config_entry."""
     _LOGGER.debug("Sensor async_setup_entry starting.")
 
-    integration: AmsHanIntegration = hass.data[DOMAIN][config_entry.entry_id]
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
-        hass, config_entry, async_add_entities, integration.measure_queue
+        hass, config_entry, async_add_entities, config_entry.runtime_data.integration.measure_queue
     )
 
     # start processing loop task
-    integration.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
+    config_entry.runtime_data.integration.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
 
     _LOGGER.debug("Sensor async_setup_entry ended.")
 
