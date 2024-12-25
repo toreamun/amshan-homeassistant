@@ -10,7 +10,7 @@ from typing import Callable, Mapping, cast
 
 from han import common as han_type, meter_connection, obis_map
 from homeassistant import const as ha_const
-from homeassistant.const import UnitOfReactivePower
+from homeassistant.const import Platform, UnitOfReactivePower
 from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant, Event
@@ -26,8 +26,6 @@ from .const import (
 from .metercon import async_setup_meter_mqtt_subscriptions, setup_meter_connection
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
-
-PLATFORM_TYPE = ha_const.Platform.SENSOR
 
 type AmsHanConfigEntry = ConfigEntry[AmsHanData]
 
@@ -140,7 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: AmsHanConfigEntry
 
     config_entry.runtime_data = AmsHanData(integration)
 
-    await hass.config_entries.async_forward_entry_setup(config_entry, PLATFORM_TYPE)
+    await hass.config_entries.async_forward_entry_setups(config_entry, [Platform.SENSOR])
 
     _LOGGER.debug("async_setup_entry complete.")
 
@@ -194,7 +192,7 @@ async def async_unload_entry(
 ) -> bool:
     """Handle removal of an entry."""
     is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
-        config_entry, PLATFORM_TYPE
+        config_entry, Platform.SENSOR
     )
 
     if is_plaform_unload_success:
