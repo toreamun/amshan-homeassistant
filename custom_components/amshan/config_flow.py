@@ -5,7 +5,7 @@ import asyncio
 import logging
 import os
 import socket
-from typing import Any, cast
+from typing import Any
 
 import async_timeout
 from han import autodecoder, common as han_type, obis_map

@@ -22,13 +22,19 @@ from .const import (
     CONF_CONNECTION_TYPE,
     CONF_MQTT_TOPICS,
     CONF_TCP_HOST,
-    DOMAIN,
 )
 from .metercon import async_setup_meter_mqtt_subscriptions, setup_meter_connection
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 PLATFORM_TYPE = ha_const.Platform.SENSOR
+
+type AmsHanConfigEntry = ConfigEntry[AmsHanData]
+
+
+@dataclass
+class AmsHanData:
+    integration: AmsHanIntegration
 
 
 class ConnectionType(Enum):
@@ -108,11 +114,10 @@ class AmsHanIntegration:
 
 async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
     """Set up the amshan component."""
-    hass.data[DOMAIN] = {}
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: AmsHanConfigEntry) -> bool:
     """Set up amshan from a config entry."""
     integration = AmsHanIntegration()
 
@@ -133,7 +138,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         config_entry.add_update_listener(async_config_entry_changed)
     )
 
-    hass.data[DOMAIN][config_entry.entry_id] = integration
+    config_entry.runtime_data = AmsHanData(integration)
+
     await hass.config_entries.async_forward_entry_setup(config_entry, PLATFORM_TYPE)
 
     _LOGGER.debug("async_setup_entry complete.")
@@ -184,7 +190,7 @@ async def async_migrate_config_entry(
 
 
 async def async_unload_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: AmsHanConfigEntry
 ) -> bool:
     """Handle removal of an entry."""
     is_plaform_unload_success = await hass.config_entries.async_forward_entry_unload(
@@ -193,8 +199,7 @@ async def async_unload_entry(
 
     if is_plaform_unload_success:
         _LOGGER.info("Integrations is unloading.")
-        ctx: AmsHanIntegration = hass.data[DOMAIN].pop(config_entry.entry_id)
-        await ctx.async_close_all()
+        await config_entry.runtime_data.integration.async_close_all()
 
     return is_plaform_unload_success
 
