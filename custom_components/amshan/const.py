@@ -1,4 +1,5 @@
 """Constants for the AMS HAN meter integration."""
+
 from __future__ import annotations
 
 from homeassistant import const as ha_const

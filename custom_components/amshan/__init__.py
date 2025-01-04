@@ -1,21 +1,21 @@
 """The AMS HAN meter integration."""
+
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-import datetime as dt
-from enum import Enum
 import logging
-from typing import Callable, Mapping, cast
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING, cast
 
-from han import common as han_type, meter_connection, obis_map
+from han import common as han_type
+from han import meter_connection, obis_map
 from homeassistant import const as ha_const
-from homeassistant.const import Platform, UnitOfReactivePower
 from homeassistant.components import sensor as ha_sensor
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, callback, HomeAssistant, Event
+from homeassistant.const import Platform, UnitOfReactivePower
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry
-from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_CONNECTION_CONFIG,
@@ -25,6 +25,14 @@ from .const import (
 )
 from .metercon import async_setup_meter_mqtt_subscriptions, setup_meter_connection
 
+if TYPE_CHECKING:
+    import datetime as dt
+    from collections.abc import Callable, Mapping
+
+CFG_VERSION_1 = 1
+CFG_VERSION_2 = 2
+CFG_VERSION_3 = 1
+
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 type AmsHanConfigEntry = ConfigEntry[AmsHanData]
@@ -32,6 +40,8 @@ type AmsHanConfigEntry = ConfigEntry[AmsHanData]
 
 @dataclass
 class AmsHanData:
+    """Integration runtime data."""
+
     integration: AmsHanIntegration
 
 
@@ -59,7 +69,7 @@ class AmsHanIntegration:
     ) -> None:
         """Set up MQTT or serial/tcp-ip receiver."""
         connection_type = ConnectionType(config_data[CONF_CONNECTION_TYPE])
-        if ConnectionType.MQTT == connection_type:
+        if connection_type == ConnectionType.MQTT:
             self._mqtt_unsubscribe = await async_setup_meter_mqtt_subscriptions(
                 hass,
                 config_data[CONF_CONNECTION_CONFIG],
@@ -110,12 +120,9 @@ class AmsHanIntegration:
             self._mqtt_unsubscribe = None
 
 
-async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
-    """Set up the amshan component."""
-    return True
-
-
-async def async_setup_entry(hass: HomeAssistant, config_entry: AmsHanConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: AmsHanConfigEntry
+) -> bool:
     """Set up amshan from a config entry."""
     integration = AmsHanIntegration()
 
@@ -138,7 +145,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: AmsHanConfigEntry
 
     config_entry.runtime_data = AmsHanData(integration)
 
-    await hass.config_entries.async_forward_entry_setups(config_entry, [Platform.SENSOR])
+    await hass.config_entries.async_forward_entry_setups(
+        config_entry, [Platform.SENSOR]
+    )
 
     _LOGGER.debug("async_setup_entry complete.")
 
@@ -146,18 +155,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: AmsHanConfigEntry
 
 
 async def async_migrate_config_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: AmsHanConfigEntry
 ) -> bool:
     """Migrate config when ConfigFlow version has changed."""
     initial_version = config_entry.version
     current_data = config_entry.data
     _LOGGER.debug("Check for config entry migration of version %d", initial_version)
 
-    if config_entry.version == 1:
-        await _async_migrate_entries(
+    if config_entry.version == CFG_VERSION_1:
+        _migrate_entries(
             hass, config_entry.entry_id, _migrate_entity_entry_from_v1_to_v2
         )
-        config_entry.version = 2
+        config_entry.version = CFG_VERSION_2
         current_data = {
             CONF_CONNECTION_TYPE: (
                 ConnectionType.MQTT
@@ -170,9 +179,9 @@ async def async_migrate_config_entry(
         }
         _LOGGER.debug("Config entry migrated to version 2")
 
-    if config_entry.version == 2:
-        config_entry.version = 3
-        await _async_migrate_entries(
+    if config_entry.version == CFG_VERSION_2:
+        config_entry.version = CFG_VERSION_3
+        _migrate_entries(
             hass, config_entry.entry_id, _migrate_entity_entry_from_v2_to_v3
         )
         _LOGGER.debug("Config entry migrated to version 3")
@@ -204,15 +213,15 @@ async def async_unload_entry(
 
 @callback
 async def async_config_entry_changed(
-    hass: HomeAssistant, config_entry: ConfigEntry
-):
+    hass: HomeAssistant, config_entry: AmsHanConfigEntry
+) -> None:
     """Handle config entry changed callback."""
     _LOGGER.info("Config entry has changed. Reload integration.")
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-def _migrate_entity_entry_from_v1_to_v2(entity: entity_registry.RegistryEntry):
-    def replace_ending(source, old, new):
+def _migrate_entity_entry_from_v1_to_v2(entity: entity_registry.RegistryEntry) -> dict:
+    def replace_ending(source: str, old: str, new: str) -> str:
         if source.endswith(old):
             return source[: -len(old)] + new
         return source
@@ -225,7 +234,7 @@ def _migrate_entity_entry_from_v1_to_v2(entity: entity_registry.RegistryEntry):
     return update
 
 
-def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
+def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry) -> dict:
     update = {}
 
     v3_migrate_fields = [
@@ -279,23 +288,25 @@ def _migrate_entity_entry_from_v2_to_v3(entity: entity_registry.RegistryEntry):
     return update
 
 
-async def _async_migrate_entries(
+def _migrate_entries(
     hass: HomeAssistant,
     config_entry_id: str,
     entry_callback: Callable[[entity_registry.RegistryEntry], dict | None],
 ) -> None:
-    ent_reg = await entity_registry.async_get_registry(hass)
+    ent_reg = entity_registry.async_get(hass)
 
     # Workaround:
     # entity_registry.async_migrate_entries fails with:
-    #   "RuntimeError: dictionary keys changed during iteration"
+    # RuntimeError: dictionary keys changed during iteration"
     # Try to get all entries from the dictionary before working on them.
-    # The migration dows not directly change any keys of the registry. Concurrency problem in HA?
+    # The migration dows not directly change any keys of the registry.
+    # Concurrency problem in HA?
 
-    entries = []
-    for entry in ent_reg.entities.values():
-        if entry.config_entry_id == config_entry_id:
-            entries.append(entry)
+    entries = [
+        entry
+        for entry in ent_reg.entities.values()
+        if entry.config_entry_id == config_entry_id
+    ]
 
     for entry in entries:
         updates = entry_callback(entry)

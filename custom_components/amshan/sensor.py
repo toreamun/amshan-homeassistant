@@ -3,24 +3,32 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import datetime as dt
 import logging
 import math
-from typing import Callable, Iterable, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
-from han import autodecoder, common as han_type, obis_map
+from han import autodecoder, obis_map
+from han import common as han_type
 from homeassistant import const as ha_const
-from homeassistant.const import UnitOfPower, UnitOfEnergy, UnitOfElectricCurrent, UnitOfElectricPotential, UnitOfReactivePower
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import State, callback, HomeAssistant
-from homeassistant.helpers import dispatcher, entity, restore_state
+from homeassistant.const import (
+    EntityCategory,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfReactivePower,
+)
+from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.helpers import dispatcher, restore_state
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 
 from . import AmsHanConfigEntry, MeterInfo, StopMessage
@@ -35,10 +43,15 @@ from .const import (
     UNIT_KILO_VOLT_AMPERE_REACTIVE_HOURS,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class AmsHanSensorEntityDescription(SensorEntityDescription):
     """A class that describes sensor entities."""
 
@@ -60,31 +73,31 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
     for sensor in [
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_ID,
-            entity_category=entity.EntityCategory.DIAGNOSTIC,
+            entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter ID",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_MANUFACTURER,
-            entity_category=entity.EntityCategory.DIAGNOSTIC,
+            entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter manufacturer",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_MANUFACTURER_ID,
-            entity_category=entity.EntityCategory.DIAGNOSTIC,
+            entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter manufacturer ID",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_METER_TYPE,
-            entity_category=entity.EntityCategory.DIAGNOSTIC,
+            entity_category=EntityCategory.DIAGNOSTIC,
             name="Meter type",
             use_configured_scaling=False,
         ),
         AmsHanSensorEntityDescription(
             key=obis_map.FIELD_OBIS_LIST_VER_ID,
-            entity_category=entity.EntityCategory.DIAGNOSTIC,
+            entity_category=EntityCategory.DIAGNOSTIC,
             name="OBIS List version identifier",
             use_configured_scaling=False,
         ),
@@ -239,17 +252,22 @@ SENSOR_TYPES: dict[str, AmsHanSensorEntityDescription] = {
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: AmsHanConfigEntry,
-    async_add_entities: Callable[[list[entity.Entity], bool], None],
-):
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Add hantest sensor platform from a config_entry."""
     _LOGGER.debug("Sensor async_setup_entry starting.")
 
     processor: MeterMeasureProcessor = MeterMeasureProcessor(
-        hass, config_entry, async_add_entities, config_entry.runtime_data.integration.measure_queue
+        hass,
+        config_entry,
+        async_add_entities,
+        config_entry.runtime_data.integration.measure_queue,
     )
 
     # start processing loop task
-    config_entry.runtime_data.integration.add_task(hass.loop.create_task(processor.async_process_measures_loop()))
+    config_entry.runtime_data.integration.add_task(
+        hass.loop.create_task(processor.async_process_measures_loop())
+    )
 
     _LOGGER.debug("Sensor async_setup_entry ended.")
 
@@ -257,7 +275,7 @@ async def async_setup_entry(
 class AmsHanEntity(SensorEntity):
     """Representation of a AmsHan sensor."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         entity_description: AmsHanSensorEntityDescription,
         measure_data: dict[str, str | int | float | dt.datetime],
@@ -268,21 +286,24 @@ class AmsHanEntity(SensorEntity):
     ) -> None:
         """Initialize AmsHanEntity class."""
         if entity_description is None:
-            raise TypeError("entity_description is required")
+            msg = "entity_description is required"
+            raise TypeError(msg)
         if measure_data is None:
-            raise TypeError("measure_data is required")
+            msg = "measure_data is required"
+            raise TypeError(msg)
         if obis_map.FIELD_METER_ID not in measure_data and (
             obis_map.FIELD_METER_MANUFACTURER not in measure_data
             and obis_map.FIELD_METER_MANUFACTURER_ID not in measure_data
         ):
-            raise ValueError(
-                (
-                    f"Expected element {obis_map.FIELD_METER_ID} or "
-                    f"{obis_map.FIELD_METER_MANUFACTURER} / {obis_map.FIELD_METER_MANUFACTURER_ID} not in measure_data."
-                )
+            msg = (
+                f"Expected element {obis_map.FIELD_METER_ID} or "
+                f"{obis_map.FIELD_METER_MANUFACTURER} / "
+                f"{obis_map.FIELD_METER_MANUFACTURER_ID} not in measure_data."
             )
+            raise ValueError(msg)
         if new_measure_signal_name is None:
-            raise TypeError("new_measure_signal_name is required")
+            msg = "new_measure_signal_name is required"
+            raise TypeError(msg)
 
         self.entity_description: AmsHanSensorEntityDescription = entity_description
         self._measure_data = measure_data
@@ -316,7 +337,7 @@ class AmsHanEntity(SensorEntity):
 
         @callback
         def on_new_measure(
-            measure_data: dict[str, str | int | float | dt.datetime]
+            measure_data: dict[str, str | int | float | dt.datetime],
         ) -> None:
             if self.measure_id in measure_data:
                 self._measure_data = measure_data
@@ -402,7 +423,7 @@ class AmsHanEntity(SensorEntity):
         return measure
 
     @property
-    def device_info(self) -> entity.DeviceInfo:
+    def device_info(self) -> DeviceInfo:
         """Return device specific attributes."""
         manufacturer = (
             self._meter_info.manufacturer
@@ -414,7 +435,7 @@ class AmsHanEntity(SensorEntity):
             self._meter_info.type if self._meter_info.type else self._meter_info.type_id
         )
 
-        return entity.DeviceInfo(
+        return DeviceInfo(
             name=f"{manufacturer} {meter_type}",
             identifiers={
                 (
@@ -433,7 +454,7 @@ class AmsHanEntity(SensorEntity):
 class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
     """Representation of a AmsHan sensor each hour."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         entity_description: AmsHanSensorEntityDescription,
         measure_data: dict[str, str | int | float | dt.datetime],
@@ -471,7 +492,7 @@ class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
 
     @property
     def native_value(self) -> None | str | int | float:
-        """Return the native value from current measure or cache if from current hour."""
+        """Return native value from current measure or cache if current hour."""
         measured_value = super().native_value
         if measured_value is not None:
             self._restored_last_state = None  # no need for restored state anymore
@@ -496,7 +517,9 @@ class AmsHanHourlyEntity(AmsHanEntity, restore_state.RestoreEntity):
 
         return None
 
-    def _is_restored_state_from_current_hour(self):
+    def _is_restored_state_from_current_hour(self) -> bool:
+        if not self._restored_last_state:
+            return False
         now = dt_util.utcnow()
         time_since_update = now - self._restored_last_state.last_updated
         return (
@@ -511,8 +534,8 @@ class MeterMeasureProcessor:
     def __init__(
         self,
         hass: HomeAssistant,
-        config_entry: ConfigEntry,
-        async_add_entities: Callable[[list[entity.Entity], bool], None],
+        config_entry: AmsHanConfigEntry,
+        async_add_entities: AddEntitiesCallback,
         measure_queue: asyncio.Queue[han_type.MeterMessageBase],
     ) -> None:
         """Initialize MeterMeasureProcessor class."""
@@ -529,7 +552,7 @@ class MeterMeasureProcessor:
         self._meter_info: MeterInfo | None = None
 
     async def async_process_measures_loop(self) -> None:
-        """Start the processing loop. The method exits when StopMessage is received from queue."""
+        """Start processing loop. Exits on StopMessage from queue."""
         _LOGGER.debug("Processing loop starting.")
         while True:
             try:
@@ -553,7 +576,7 @@ class MeterMeasureProcessor:
             message = await self._measure_queue.get()
             if isinstance(message, StopMessage):
                 # stop signal reveived
-                return dict()
+                return {}
 
             try:
                 decoded_measure = self._decoder.decode_message(message)
@@ -563,12 +586,12 @@ class MeterMeasureProcessor:
 
                 _LOGGER.warning(
                     "Could not decode meter message: %s",
-                    message.as_bytes.hex() if message.as_bytes else bytes(),
+                    message.as_bytes.hex() if message.as_bytes else b"",
                 )
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception(
                     "Exception when decoding meter message: %s",
-                    message.as_bytes.hex() if message.as_bytes else bytes(),
+                    message.as_bytes.hex() if message.as_bytes else b"",
                 )
 
     def _update_entities(
@@ -578,21 +601,23 @@ class MeterMeasureProcessor:
 
         # signal all entities to update with new measure data
         if self._known_measures:
-            assert self._new_measure_signal_name is not None
-            dispatcher.async_dispatcher_send(
-                self._hass, self._new_measure_signal_name, measure_data
-            )
+            if self._new_measure_signal_name is None:
+                _LOGGER.debug("New measure signal name is not set. Unexpected")
+            else:
+                dispatcher.async_dispatcher_send(
+                    self._hass, self._new_measure_signal_name, measure_data
+                )
 
     def _ensure_entities_are_created(
         self, measure_data: dict[str, str | int | float | dt.datetime]
     ) -> None:
-        # Norwegian short message does not have enough data to register entities with unique_id.
-        # Check for voltage to detect if this is not a short message
+        # Norwegian short message does not have enough data to register
+        # entities with unique_id. Check for voltage to detect if this
+        # is not a short message
         if obis_map.FIELD_VOLTAGE_L1 in measure_data:
             missing_measures = measure_data.keys() - self._known_measures
 
             if missing_measures:
-
                 # Add hourly sensors before measurement is available to avoid long delay
                 hour_sensors = {
                     s.key for s in SENSOR_TYPES.values() if s.is_hour_sensor
@@ -609,14 +634,14 @@ class MeterMeasureProcessor:
                 if new_enitities:
                     self._add_entities(new_enitities)
 
-    def _add_entities(self, entities: list[AmsHanEntity]):
+    def _add_entities(self, entities: list[AmsHanEntity]) -> None:
         new_measures = [x.measure_id for x in entities]
         self._known_measures.update(new_measures)
         _LOGGER.debug(
             "Register new entities for measures: %s",
             new_measures,
         )
-        self._async_add_entities(list(entities), True)
+        self._async_add_entities(list(entities), update_before_add=True)
 
     def _create_entities(
         self,
