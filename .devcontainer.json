@@ -14,6 +14,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "charliermarsh.ruff",
         "github.vscode-pull-request-github",
         "ms-python.python",
         "ms-python.vscode-pylance",
@@ -22,19 +23,27 @@
       "settings": {
         "files.eol": "\n",
         "editor.tabSize": 4,
-        "python.analysis.autoSearchPaths": false,
-        "python.linting.pylintEnabled": true,
-        "python.linting.enabled": true,
-        "python.linting.flake8Enabled": true,
-        "python.formatting.provider": "black",
-        "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
         "editor.formatOnPaste": false,
         "editor.formatOnSave": true,
         "editor.formatOnType": true,
-        "files.trimTrailingWhitespace": true
+        "files.trimTrailingWhitespace": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.autoImportCompletions": true,
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
       }
     }
   },
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+        "packages": [
+            "ffmpeg",
+            "libturbojpeg0",
+            "libpcap-dev"
+        ]
+    }
+  }
 }
