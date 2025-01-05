@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-from typing import Any, Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from han import (
     common as han_type,
+)
+from han import (
     dlde,
     hdlc,
     meter_connection,
+)
+from han import (
     serial_connection_factory as han_serial,
+)
+from han import (
     tcp_connection_factory as han_tcp,
 )
 from homeassistant.components import mqtt
-from homeassistant.core import callback, HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 
 from .const import (
     CONF_MQTT_TOPICS,
@@ -31,6 +36,11 @@ from .const import (
     CONF_TCP_HOST,
     CONF_TCP_PORT,
 )
+
+if TYPE_CHECKING:
+    import asyncio
+    from collections.abc import Mapping
+
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -77,18 +87,16 @@ def get_connection_factory(
         )
 
     # select tcp or serial connection factory
-    connection_factory = (
+    return (
         tcp_connection_factory if CONF_TCP_HOST in config else serial_connection_factory
     )
-
-    return connection_factory
 
 
 async def async_setup_meter_mqtt_subscriptions(
     hass: HomeAssistant,
     config: Mapping[str, Any],
     measure_queue: asyncio.Queue[han_type.MeterMessageBase],
-) -> Callable:
+) -> CALLBACK_TYPE:
     """Set up MQTT topic subscriptions."""
 
     @callback
@@ -96,7 +104,8 @@ async def async_setup_meter_mqtt_subscriptions(
         """Handle new MQTT messages."""
         _LOGGER.debug(
             (
-                "Message with timestamp %s, QOS %d, retain flagg %s, and payload length %d received "
+                "Message with timestamp %s, QOS %d, retain flagg %s, "
+                "and payload length %d received "
                 "from topic %s from subscription to topic %s"
             ),
             mqtt_message.timestamp,
@@ -110,20 +119,21 @@ async def async_setup_meter_mqtt_subscriptions(
         if meter_message:
             measure_queue.put_nowait(meter_message)
 
-    unsubscibers: list[Callable] = []
     topics = {x.strip() for x in config[CONF_MQTT_TOPICS].split(",")}
 
     _LOGGER.debug("Try to subscribe to %d MQTT topic(s): %s", len(topics), topics)
-    for topic in topics:
-        unsubscibers.append(
-            await mqtt.async_subscribe(hass, topic, message_received, 1, encoding=None)
+    unsubscibers = [
+        await mqtt.client.async_subscribe(
+            hass, topic, message_received, 1, encoding=None
         )
+        for topic in topics
+    ]
     _LOGGER.debug(
         "Successfully subscribed to %d MQTT topic(s): %s", len(topics), topics
     )
 
     @callback
-    def unsubscribe_mqtt():
+    def unsubscribe_mqtt() -> None:
         _LOGGER.debug("Unsubscribe %d MQTT topic(s): %s", len(unsubscibers), topics)
         for unsubscribe in unsubscibers:
             unsubscribe()
@@ -136,21 +146,24 @@ def get_meter_message(
 ) -> han_type.MeterMessageBase | None:
     """Get frame information part from mqtt message."""
     # Try first to read as HDLC-frame.
-    message = _try_read_meter_message(mqtt_message.payload)
+
+    # payload should always be bytes when encoding is None in async_subscribe
+    payload: bytes = mqtt_message.payload  # type: ignore[attr-defined]
+    message = _try_read_meter_message(payload)
     if message is not None:
         if message.message_type == han_type.MeterMessageType.P1:
             if message.is_valid:
                 _LOGGER.debug(
                     "Got valid P1 message from topic %s: %s",
                     mqtt_message.topic,
-                    mqtt_message.payload.hex(),
+                    payload.hex(),
                 )
                 return message
 
             _LOGGER.debug(
                 "Got invalid P1 message from topic %s: %s",
                 mqtt_message.topic,
-                mqtt_message.payload.hex(),
+                payload.hex(),
             )
 
             return None
@@ -158,22 +171,28 @@ def get_meter_message(
         if message.is_valid:
             if message.payload is not None:
                 _LOGGER.debug(
-                    "Got valid frame of expected length with correct checksum from topic %s: %s",
+                    (
+                        "Got valid frame of expected length with correct "
+                        "checksum from topic %s: %s"
+                    ),
                     mqtt_message.topic,
-                    mqtt_message.payload.hex(),
+                    payload.hex(),
                 )
                 return message
 
             _LOGGER.debug(
-                "Got empty frame of expected length with correct checksum from topic %s: %s",
+                (
+                    "Got empty frame of expected length with correct "
+                    "checksum from topic %s: %s"
+                ),
                 mqtt_message.topic,
-                mqtt_message.payload.hex(),
+                payload.hex(),
             )
 
         _LOGGER.debug(
             "Got invalid frame from topic %s: %s",
             mqtt_message.topic,
-            mqtt_message.payload.hex(),
+            payload.hex(),
         )
         return None
 
@@ -192,15 +211,14 @@ def get_meter_message(
     _LOGGER.debug(
         "Got payload without HDLC framing from topic %s: %s",
         mqtt_message.topic,
-        mqtt_message.payload.hex(),
+        payload.hex(),
     )
 
-    binary = (
-        _payload_to_binary(mqtt_message.payload)
-        if _is_hex_string(mqtt_message.payload)
-        else mqtt_message.payload
-    )
-    return han_type.DlmsMessage(binary)
+    # Try message containing DLMS (binary) message without HDLC framing
+    # Some bridges encode the binary data as hex string, and this must be decoded
+    if _is_hex_string(payload):
+        payload = _hex_payload_to_binary(payload)
+    return han_type.DlmsMessage(payload)
 
 
 def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
@@ -211,7 +229,9 @@ def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
         except ValueError as ex:
             _LOGGER.debug("Starts with '/', but not a valid P1 message: %s", ex)
 
-    frame_reader = hdlc.HdlcFrameReader(False)
+    frame_reader = hdlc.HdlcFrameReader(
+        use_octet_stuffing=False, use_abort_sequence=False
+    )
 
     # Reader expects flag sequence in start and end.
     flag_seqeuence = hdlc.HdlcFrameReader.FLAG_SEQUENCE.to_bytes(1, byteorder="big")
@@ -229,22 +249,24 @@ def _try_read_meter_message(payload: bytes) -> han_type.MeterMessageBase | None:
     if not _is_hex_string(payload):
         return None
 
-    return _try_read_meter_message(_payload_to_binary(payload))
+    return _try_read_meter_message(_hex_payload_to_binary(payload))
 
 
 def _is_hex_string(payload: bytes) -> bool:
     if (len(payload) % 2) == 0:
         try:
             int(payload, 16)
-            return True
         except ValueError:
             return False
+        else:
+            return True
     return False
 
 
-def _payload_to_binary(payload) -> bytes:
-    return (
-        bytes.fromhex(payload)
-        if isinstance(payload, str)
-        else bytes.fromhex(payload.decode("utf8"))
-    )
+def _hex_payload_to_binary(payload: str | bytes) -> bytes:
+    if isinstance(payload, bytes):
+        return bytes.fromhex(payload.decode("utf8"))
+    if isinstance(payload, str):
+        return bytes.fromhex(payload)
+    msg = f"Unsupported payload type: {type(payload)}"
+    raise ValueError(msg)

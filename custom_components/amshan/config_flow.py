@@ -1,24 +1,26 @@
 """Config flow for AMS HAN meter integration."""
+
 from __future__ import annotations
 
 import asyncio
+import errno
 import logging
 import os
 import socket
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import async_timeout
-from han import autodecoder, common as han_type, obis_map
-from homeassistant import config_entries
-from homeassistant.components import mqtt
-from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv
-from homeassistant.core import HomeAssistant
 import serial
 import voluptuous as vol
+from han import autodecoder, obis_map
+from han import common as han_type
+from homeassistant import config_entries
+from homeassistant.components import mqtt
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 
-from . import ConnectionType, MeterInfo
+from . import AmsHanConfigEntry, ConnectionType, MeterInfo
 from .const import (
     CONF_CONNECTION_CONFIG,
     CONF_CONNECTION_TYPE,
@@ -34,16 +36,19 @@ from .const import (
     CONF_SERIAL_XONXOFF,
     CONF_TCP_HOST,
     CONF_TCP_PORT,
+    DOMAIN,  # pylint: disable=unused-import
     HOSTNAME_IP4_IP6_REGEX,
 )
-from .const import DOMAIN  # pylint: disable=unused-import
 from .metercon import get_connection_factory, get_meter_message
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlowResult
 
 _LOGGER = logging.getLogger(__name__)
 
 
 # max number of frames to search for needed meter information
-# Some meters sends 3 frames containing minimal of data between larger frames. Skip them.
+# Some meters sends 3 frames containing minimal of data between larger frames. Skip.
 # Some frames may be abortet correctly. Add some for that.
 # A max count of 4 should be the normal situation, but a little more is more robust.
 MAX_FRAME_SEARCH_COUNT = 6
@@ -86,7 +91,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors = {}
         if user_input is not None:
@@ -113,7 +118,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_serial_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the serial_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
@@ -153,14 +158,10 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(["N", "E", "O"]),
                     vol.Optional(
                         CONF_SERIAL_BYTESIZE, default=user_input[CONF_SERIAL_BYTESIZE]
-                    ): vol.In(
-                        ["5", "6", "7", "8"]
-                    ),  # use string as workaround gui bug
+                    ): vol.In(["5", "6", "7", "8"]),  # use string as workaround gui bug
                     vol.Optional(
                         CONF_SERIAL_STOPBITS, default=user_input[CONF_SERIAL_STOPBITS]
-                    ): vol.In(
-                        ["1", "1.5", "2"]
-                    ),  # use string as workaround gui bug
+                    ): vol.In(["1", "1.5", "2"]),  # use string as workaround gui bug
                     vol.Optional(
                         CONF_SERIAL_XONXOFF, default=user_input[CONF_SERIAL_XONXOFF]
                     ): cv.boolean,
@@ -177,7 +178,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_network_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the network_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
@@ -209,7 +210,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_hass_mqtt_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle hass_mqtt_connection step."""
         if user_input:
             entry_result = await self._async_try_create_entry(
@@ -237,7 +238,7 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_try_create_entry(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
-    ) -> FlowResult | None:
+    ) -> ConfigFlowResult | None:
         config = dict(user_input)  # create a copy to be able to make changes
         if connection_type == ConnectionType.SERIAL:
             config[CONF_SERIAL_BYTESIZE] = int(config[CONF_SERIAL_BYTESIZE])
@@ -286,12 +287,12 @@ class AmsHanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return None
 
     def _is_mqtt_available(self) -> bool:
-        return mqtt.DOMAIN in self.hass.config.components
+        return mqtt.const.DOMAIN in self.hass.config.components
 
     @staticmethod
     def _try_get_first_available_serial() -> str | None:
         by_id = "/dev/serial/by-id"
-        if not os.path.isdir(by_id):
+        if not Path(by_id).is_dir:
             return None
 
         for device in (entry.path for entry in os.scandir(by_id) if entry.is_symlink()):
@@ -342,7 +343,7 @@ class ConfigFlowValidation:
 
                     _LOGGER.debug("Decoded measure data is missing required info.")
 
-        raise TimeoutError()
+        raise TimeoutError
 
     async def _async_try_get_message(
         self, measure_queue: asyncio.Queue[han_type.MeterMessageBase]
@@ -372,7 +373,7 @@ class ConfigFlowValidation:
                 self._set_base_error(VALIDATION_ERROR_TIMEOUT_CONNECT)
                 return None
             except serial.SerialException as ex:
-                if ex.errno == 2:
+                if ex.errno == errno.ENOENT:
                     # No such file or directory
                     self._set_base_error(VALIDATION_ERROR_SERIAL_EXCEPTION_ERRNO_2)
                     _LOGGER.debug(
@@ -380,20 +381,17 @@ class ConfigFlowValidation:
                     )
                 else:
                     self._set_base_error(VALIDATION_ERROR_SERIAL_EXCEPTION_GENERAL)
-                    _LOGGER.error(
-                        "Serial exception when connecting to HAN-port: %s", ex
-                    )
+                    _LOGGER.exception("Serial exception when connecting to HAN-port")
                 return None
             except ConnectionError as ex:
                 self._set_base_error(VALIDATION_ERROR_CONNECT)
-                _LOGGER.error(
-                    "Network exception (%s) when connecting to HAN-port: %s",
+                _LOGGER.exception(
+                    "Network exception (%s) when connecting to HAN-port",
                     type(ex).__name__,
-                    ex,
                 )
 
-            except Exception as ex:
-                _LOGGER.exception("Unexpected error connecting to HAN-port: %s", ex)
+            except Exception:
+                _LOGGER.exception("Unexpected error connecting to HAN-port")
                 raise
 
             try:
@@ -417,14 +415,13 @@ class ConfigFlowValidation:
             if meter_message:
                 measure_queue.put_nowait(meter_message)
 
-        unsubscibers = []
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
-        for topic in topics:
-            unsubscibers.append(
-                await mqtt.async_subscribe(
-                    hass, topic, message_received, 1, encoding=None
-                )
+        unsubscibers = [
+            await mqtt.client.async_subscribe(
+                hass, topic, message_received, 1, encoding=None
             )
+            for topic in topics
+        ]
 
         try:
             return await self._async_get_meter_info(measure_queue)
@@ -460,17 +457,17 @@ class ConfigFlowValidation:
     def _validate_topics(self, user_input: dict[str, Any]) -> None:
         topics = {x.strip() for x in user_input[CONF_MQTT_TOPICS].split(",")}
         if not topics:
-            self.errors[
-                CONF_MQTT_TOPICS
-            ] = VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+            self.errors[CONF_MQTT_TOPICS] = (
+                VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+            )
 
         for topic in topics:
             try:
-                mqtt.valid_subscribe_topic(topic)
+                mqtt.util.valid_subscribe_topic(topic)
             except vol.Invalid:
-                self.errors[
-                    CONF_MQTT_TOPICS
-                ] = VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+                self.errors[CONF_MQTT_TOPICS] = (
+                    VALIDATION_ERROR_MQTT_INVALID_SUBSCRIBE_TOPIC
+                )
 
     def _validate_schema(
         self, connection_type: ConnectionType, user_input: dict[str, Any]
@@ -499,14 +496,17 @@ class ConfigFlowValidation:
                 }
             )
         else:
-            raise ValueError(f"Unexpected connection type {connection_type}")
+            msg = f"Unexpected connection type {connection_type}"
+            raise ValueError(msg)
 
         try:
             schema(user_input)
         except vol.MultipleInvalid as ex:
             for err in ex.errors:
                 for element in err.path:
-                    self.errors[element] = VALIDATION_ERROR_VOLUPTUOUS_BASE + element
+                    self.errors[str(element)] = VALIDATION_ERROR_VOLUPTUOUS_BASE + str(
+                        element
+                    )
 
     def validate_connection_type_input(
         self, user_input: dict[str, Any]
@@ -546,16 +546,21 @@ class ConfigFlowValidation:
 class AmsHanOptionsFlowHandler(config_entries.OptionsFlow):
     """Config flow options handler."""
 
-    def __init__(self, config_entry) -> None:
+    def __init__(self, config_entry: AmsHanConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
         self.options = dict(config_entry.options)
 
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
+    async def async_step_init(
+        self,
+        user_input: dict[str, Any] | None = None,  # noqa: ARG002
+    ) -> ConfigFlowResult:  # pylint: disable=unused-argument
         """Manage the options."""
         return await self.async_step_user()
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle a flow initialized by the user."""
         if user_input is not None:
             self.options.update(user_input)
